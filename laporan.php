@@ -21,7 +21,9 @@ $summaryStmt = db_execute(
     'ss',
     [$awal, $akhir]
 );
-$summary = mysqli_fetch_assoc(mysqli_stmt_get_result($summaryStmt));
+$summaryResult = mysqli_stmt_get_result($summaryStmt);
+$summary = mysqli_fetch_assoc($summaryResult);
+mysqli_stmt_close($summaryStmt);
 $classStmt = db_execute(
     $conn,
     "SELECT k.nama_kelas, COUNT(p.idspp) AS transactions, COALESCE(SUM(p.jumlah), 0) AS income
@@ -32,6 +34,8 @@ $classStmt = db_execute(
     'ss',
     [$awal, $akhir]
 );
+$classResult = mysqli_stmt_get_result($classStmt);
+mysqli_stmt_close($classStmt);
 $monthlyStmt = db_execute(
     $conn,
     "SELECT DATE_FORMAT(tglbayar, '%Y-%m') AS payment_month, COUNT(*) AS transactions, COALESCE(SUM(jumlah), 0) AS income
@@ -40,8 +44,8 @@ $monthlyStmt = db_execute(
     'ss',
     [$awal, $akhir]
 );
-$classResult = mysqli_stmt_get_result($classStmt);
 $monthlyResult = mysqli_stmt_get_result($monthlyStmt);
+mysqli_stmt_close($monthlyStmt);
 $monthNames = [1 => 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 $overdueStmt = db_execute(
     $conn,
@@ -49,7 +53,9 @@ $overdueStmt = db_execute(
      FROM pembayaran p JOIN siswa s ON s.id_siswa = p.id_siswa
      WHERE s.status = 'aktif' AND p.ket IS NULL AND p.jatuhtempo < CURDATE()"
 );
-$overdue = mysqli_fetch_assoc(mysqli_stmt_get_result($overdueStmt));
+$overdueResult = mysqli_stmt_get_result($overdueStmt);
+$overdue = mysqli_fetch_assoc($overdueResult);
+mysqli_stmt_close($overdueStmt);
 
 include __DIR__ . '/header.php';
 ?>
