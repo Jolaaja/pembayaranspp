@@ -15,7 +15,7 @@ include 'koneksi.php';
                                 <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                                     <thead>
                                         <tr>
-                                            <th>Nis</th>
+                                            <th>NISN</th>
                                             <th>Nama Siswa</th>
                                             <th>Angkatan</th>
                                             <th>Kelas</th>
@@ -32,12 +32,12 @@ include 'koneksi.php';
                                      ?>
                                       
                                         <tr>
-                                            <td><?= $res['nisn'] ?></td>
-                                            <td><?= $res['nama'] ?></td>
-                                            <td><?= $res['nama_angkatan'] ?></td>
-                                            <td><?= $res['nama_kelas'] ?></td>
-                                            <td><?= $res['nama_jurusan'] ?></td>
-                                            <td><?= $res['alamat'] ?></td>
+                                            <td><?= e($res['nisn']) ?></td>
+                                            <td><?= e($res['nama']) ?></td>
+                                            <td><?= e($res['nama_angkatan']) ?></td>
+                                            <td><?= e($res['nama_kelas']) ?></td>
+                                            <td><?= e($res['nama_jurusan']) ?></td>
+                                            <td><?= e($res['alamat']) ?></td>
                                         </tr>
                                     <?php endwhile; ?>
                                     </tbody>

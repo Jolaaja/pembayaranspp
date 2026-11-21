@@ -1,85 +1,75 @@
-<?php include 'koneksi.php';
-include 'header.php';
-if(isset($_GET['id_admin'])) {
-	$id= $_GET['id_admin'];
-	$query = "SELECT * FROM admin WHERE id_admin = '$id'";
-	$exec = mysqli_query($conn,$query);
-	$res = mysqli_fetch_assoc($exec);
+<?php
+require_once __DIR__ . '/app.php';
+require_login();
+include __DIR__ . '/koneksi.php';
+
+$adminId = (int) $_SESSION['admin'];
+$stmt = mysqli_prepare($conn, 'SELECT nama_admin, user_admin FROM admin WHERE id_admin = ?');
+mysqli_stmt_bind_param($stmt, 'i', $adminId);
+mysqli_stmt_execute($stmt);
+$admin = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+if (!$admin) {
+    http_response_code(404);
+    exit('Akun administrator tidak ditemukan.');
 }
 
-if(isset($_POST['simpan'])) {
-	$nama_admin = htmlentities(strip_tags($_POST['nama_admin']));
-	$user_admin = htmlentities(strip_tags($_POST['user_admin']));
-	$pass_admin = htmlentities(strip_tags($_POST['pass_admin']));
-	$id_admin = $_POST['id_admin'];
-	$pass_hash = password_hash($pass_admin, PASSWORD_DEFAULT);
-	$query  = "UPDATE admin SET nama_admin = '$nama_admin', user_admin = '$user_admin', pass_admin = '$pass_hash' WHERE id_admin = '$id_admin'" ;
-	$exec = mysqli_query($conn,$query);
-	if($exec) {
-		 echo "<script>alert('Data Admin berhasil diedit')
-       document.location = 'index.php';
-       </script>";
-	}else {
-		 echo "<script>alert('Data Admin gagal diedit')
-       document.location = 'index.php';
-       </script>";
-	}
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['simpan'])) {
+    if (!csrf_validate()) {
+        flash('Sesi formulir tidak valid. Muat ulang halaman dan coba lagi.', 'danger');
+    } else {
+        $name = trim((string) ($_POST['nama_admin'] ?? ''));
+        $username = trim((string) ($_POST['user_admin'] ?? ''));
+        $newPassword = (string) ($_POST['pass_admin'] ?? '');
+
+        if ($name === '' || $username === '') {
+            flash('Nama dan username wajib diisi.', 'danger');
+        } elseif ($newPassword !== '' && strlen($newPassword) < 10) {
+            flash('Password baru minimal 10 karakter.', 'danger');
+        } else {
+            if ($newPassword === '') {
+                $update = mysqli_prepare($conn, 'UPDATE admin SET nama_admin = ?, user_admin = ? WHERE id_admin = ?');
+                mysqli_stmt_bind_param($update, 'ssi', $name, $username, $adminId);
+            } else {
+                $passwordHash = password_hash($newPassword, PASSWORD_DEFAULT);
+                $update = mysqli_prepare($conn, 'UPDATE admin SET nama_admin = ?, user_admin = ?, pass_admin = ? WHERE id_admin = ?');
+                mysqli_stmt_bind_param($update, 'sssi', $name, $username, $passwordHash, $adminId);
+            }
+
+            if (mysqli_stmt_execute($update)) {
+                $_SESSION['nama_admin'] = $name;
+                flash('Pengaturan akun berhasil diperbarui.');
+                header('Location: adminedit.php');
+                exit;
+            }
+            flash('Pengaturan akun gagal diperbarui.', 'danger');
+        }
+    }
+    header('Location: adminedit.php');
+    exit;
 }
+
+include __DIR__ . '/header.php';
 ?>
-
-<body class="bg-gradient-primary">
-
-    <div class="container">
-
-        <!-- Outer Row -->
-        <div class="row justify-content-center">
-
-            <div class="col-xl-10 col-lg-12 col-md-9">
-
-                <div class="card o-hidden border-0 shadow-lg my-5">
-                    <div class="card-body p-0">
-                        <!-- Nested Row within Card Body -->
-                        <div class="row">
-                            <div class="col-lg-6 d-none d-lg-block bg-login-image">
-                                <img width="100%" height="100%" src="background.jpg">
-                            </div>
-                            <div class="col-lg-6">
-                                <div class="p-5">
-                                    <div class="text-center">
-                                        <h1 class="h4 text-gray-900 mb-4">Edit Data Admin</h1>
-                                    </div>
-                                    <form class="user" method="post" action="">
-                                    	 <div class="form-group">
-                                    	 	<input type="hidden" name="id_admin" value="<?= $res['id_admin'] ?>">
-                                            <input type="text" autocomplete="off" required name="nama_admin" class="form-control form-control-user"
-                                                id="exampleInputEmail" aria-describedby="emailHelp"
-                                                placeholder="Enter Name..." value="<?= $res['nama_admin'] ?>">
-                                        </div>
-                                        <div class="form-group">
-                                            <input type="text" autocomplete="off" required name="user_admin" class="form-control form-control-user"
-                                                id="exampleInputEmail" aria-describedby="emailHelp"
-                                                placeholder="Enter Username..." value="<?= $res['user_admin'] ?>">
-                                        </div>
-                                        <div class="form-group">
-                                            <input autocomplete="off" type="password"required name="pass_admin" class="form-control form-control-user"
-                                                id="exampleInputPassword" placeholder="Password" value="<?= $res['pass_admin'] ?>">
-                                        </div>
-                                        
-                                        <button type="submit" name="simpan" class="btn btn-primary btn-user btn-block">Simpan</button>
-                                        <hr>
-                                    </form>
-                                   
-                                    
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
+<section class="card profile-card">
+    <div class="card-header"><h6>Informasi administrator</h6></div>
+    <div class="card-body">
+        <p class="form-intro">Perbarui nama dan username. Kosongkan password jika tidak ingin menggantinya.</p>
+        <form method="post" action="adminedit.php" class="profile-form">
+            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+            <div class="form-group">
+                <label for="admin-name">Nama administrator</label>
+                <input id="admin-name" class="form-control" type="text" name="nama_admin" maxlength="50" required value="<?= e($admin['nama_admin']) ?>">
             </div>
-
-        </div>
-
+            <div class="form-group">
+                <label for="admin-user">Username</label>
+                <input id="admin-user" class="form-control" type="text" name="user_admin" maxlength="50" autocomplete="username" required value="<?= e($admin['user_admin']) ?>">
+            </div>
+            <div class="form-group">
+                <label for="admin-password">Password baru <span class="label-optional">opsional</span></label>
+                <input id="admin-password" class="form-control" type="password" name="pass_admin" minlength="10" autocomplete="new-password" placeholder="Minimal 10 karakter">
+            </div>
+            <button type="submit" name="simpan" class="btn btn-primary">Simpan perubahan</button>
+        </form>
     </div>
-
- <?php include 'footer.php'; ?>
+</section>
+<?php include __DIR__ . '/footer.php'; ?>

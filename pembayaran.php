@@ -3,7 +3,6 @@ include 'function/function_rupiah.php';
 include 'koneksi.php';
 include 'header.php';
  ?>
-<?php show_flash(); ?>
  <div class="card shadow mb-4">
   <div class="card-body">
   	<form action="" method="get">
@@ -47,19 +46,19 @@ if (isset($_GET['nisn']) && $_GET['nisn'] != ''){
                              
                                         <tr>
                                                 <td>NISN</td>
-                                                <td><?= $siswa['nisn'] ?></td>
+                                                <td><?= e($siswa['nisn']) ?></td>
                                             </tr>
                                             <tr>
                                                 <td>Nama Siswa</td>
-                                                <td><?= $siswa['nama'] ?></td>
+                                                <td><?= e($siswa['nama']) ?></td>
                                             </tr>
                                             <tr>
                                                 <td>Kelas</td>
-                                                <td><?= $siswa['nama_kelas'] ?></td>
+                                                <td><?= e($siswa['nama_kelas']) ?></td>
                                             </tr>
                                             <tr>
                                                 <td>Tahun ajaran </td>
-                                                <td><?= $siswa['nama_angkatan'] ?></td>
+                                                <td><?= e($siswa['nama_angkatan']) ?></td>
                                             </tr>
                              
                              
@@ -97,17 +96,19 @@ if (isset($_GET['nisn']) && $_GET['nisn'] != ''){
                                     <tbody>
                                       <?php 
                                    $no=1;
-                                    $query = "SELECT * from pembayaran WHERE id_siswa = '$id_siswa' order by jatuhtempo ASC ";
-                                    $exec = mysqli_query($conn,$query);
+                                    $stmt = mysqli_prepare($conn, 'SELECT * FROM pembayaran WHERE id_siswa = ? ORDER BY jatuhtempo ASC');
+                                    mysqli_stmt_bind_param($stmt, 'i', $id_siswa);
+                                    mysqli_stmt_execute($stmt);
+                                    $exec = mysqli_stmt_get_result($stmt);
                                     while($res = mysqli_fetch_assoc($exec)) { ?>
                                          <tr>
                                             <td><?= $no++ ?></td>
-                                            <td><?= $res['bulan'] ?></td>
-                                            <td><?= $res['jatuhtempo'] ?></td>
-                                            <td><?= $res['nobayar'] ?></td>
-                                            <td><?= $res['tglbayar'] ?></td>
+                                            <td><?= e($res['bulan']) ?></td>
+                                            <td><?= e($res['jatuhtempo']) ?></td>
+                                            <td><?= e($res['nobayar']) ?></td>
+                                            <td><?= e($res['tglbayar']) ?></td>
                                             <td><?= format_rupiah($res['jumlah']) ?></td>
-                                            <td><?= $res['ket'] ?></td>
+                                            <td><?= e($res['ket']) ?></td>
                                             <td>
                                                 <?php
                                             if ($res['nobayar'] == ''){
@@ -148,5 +149,4 @@ if (isset($_GET['nisn']) && $_GET['nisn'] != ''){
                <?php } ?>
 
        <?php } ?>
-          </div>
  <?php include 'footer.php'; ?>

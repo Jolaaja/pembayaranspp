@@ -1,21 +1,48 @@
-<?php include 'header.php';
-include 'koneksi.php';
-
-if(isset($_GET['id_jurusan'])) {
-    $id_jurusan = $_GET['id_jurusan'];
-    $exec = mysqli_query($conn,"DELETE FROM jurusan WHERE id_jurusan='$id_jurusan'");
-    if($exec) {
-       echo "<script>alert('Data jurusan berhasil dihapus')
-       document.location = 'editdatajurusan.php';
-       </script>";
-    }else {
-        echo "<script>alert('Data jurusan gagal dihapus')
-       document.location = 'editdatajurusan.php';
-       </script>";
+<?php
+require_once __DIR__ . '/app.php';
+require_login();
+include __DIR__ . '/koneksi.php';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
+    if (csrf_validate()) {
+        $id = filter_var($_POST['id_jurusan'] ?? null, FILTER_VALIDATE_INT);
+        if ($id) {
+            $usage = db_execute($conn, 'SELECT id_siswa FROM siswa WHERE id_jurusan = ? LIMIT 1', 'i', [$id]);
+            if (mysqli_fetch_assoc(mysqli_stmt_get_result($usage))) {
+                flash('Jurusan masih digunakan oleh data siswa.', 'danger');
+            } else {
+                db_execute($conn, 'DELETE FROM jurusan WHERE id_jurusan = ?', 'i', [$id]);
+                flash('Data jurusan berhasil dihapus.');
+            }
+        } else {
+            flash('ID jurusan tidak valid.', 'danger');
+        }
+    } else {
+        flash('Sesi formulir tidak valid. Coba lagi.', 'danger');
     }
+    header('Location: editdatajurusan.php');
+    exit;
 }
-
- ?>
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['simpan']) || isset($_POST['edit']))) {
+    if (!csrf_validate()) {
+        flash('Sesi formulir tidak valid. Coba lagi.', 'danger');
+    } else {
+        $name = trim(strtoupper((string) ($_POST['nama_jurusan'] ?? '')));
+        $id = isset($_POST['edit']) ? filter_var($_POST['id_jurusan'] ?? null, FILTER_VALIDATE_INT) : null;
+        if ($name === '' || (isset($_POST['edit']) && !$id)) {
+            flash('Nama jurusan wajib diisi.', 'danger');
+        } elseif (isset($_POST['edit'])) {
+            db_execute($conn, 'UPDATE jurusan SET nama_jurusan = ? WHERE id_jurusan = ?', 'si', [$name, $id]);
+            flash('Data jurusan berhasil diperbarui.');
+        } else {
+            db_execute($conn, 'INSERT INTO jurusan (nama_jurusan) VALUES (?)', 's', [$name]);
+            flash('Data jurusan berhasil ditambahkan.');
+        }
+    }
+    header('Location: editdatajurusan.php');
+    exit;
+}
+include __DIR__ . '/header.php';
+?>
 
 <!-- button triger -->
  <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#exampleModal">Tambah Data</button>
@@ -46,10 +73,10 @@ if(isset($_GET['id_jurusan'])) {
                                       
                                         <tr>
                                             <td><?= $no++ ?></td>
-                                            <td><?= $res['nama_jurusan'] ?></td>
+                                            <td><?= e($res['nama_jurusan']) ?></td>
                                             <td>
-                                                <a href="editdatajurusan.php?id_jurusan=<?= $res['id_jurusan'] ?>" class="btn btn-sm btn-danger" onclick="return confirm('Apakah Yakin Ingin Menghapus Data?')">Hapus</a>
-                                                 <a href="#" class="view_data btn btn-sm btn-warning"data-bs-toggle="modal" data-bs-target="#myModal" id="<?php echo $res['id_jurusan']; ?>">Edit</a>
+                                                <form method="post" class="d-inline" onsubmit="return confirm('Hapus data jurusan ini?')"><input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>"><input type="hidden" name="id_jurusan" value="<?= (int) $res['id_jurusan'] ?>"><button type="submit" name="delete" class="btn btn-sm btn-danger">Hapus</button></form>
+                                                <a href="#" class="view_data btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#myModal" id="<?= (int) $res['id_jurusan'] ?>">Edit</a>
                                             </td>
                                         </tr>
                                     <?php endwhile; ?>
@@ -69,11 +96,9 @@ if(isset($_GET['id_jurusan'])) {
       </div>
       <div class="modal-body">
         <form action="" method="POST">
-            <input type="text" name="nama_jurusan" placeholder="Nama jurusan" class="form-control mb-2">
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        <button type="Submit" name="simpan" class="btn btn-primary">Simpan</button>
+            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+            <div class="form-group"><label for="major-name">Nama jurusan</label><input id="major-name" type="text" name="nama_jurusan" placeholder="Nama jurusan" class="form-control" maxlength="50" required></div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button><button type="submit" name="simpan" class="btn btn-primary">Simpan</button></div>
         </form>
       </div>
     </div>
@@ -97,68 +122,4 @@ if(isset($_GET['id_jurusan'])) {
   </div>
 </div>
 
-<?php 
-
-if(isset($_POST['simpan'])) {
-    $nama_jurusan = htmlentities(strip_tags(strtoupper($_POST['nama_jurusan'])));
-
-    $query = "INSERT INTO jurusan (nama_jurusan) values('$nama_jurusan')";
-    $exec = mysqli_query($conn, $query);
-    if($exec) {
-       echo "<script>alert('Data jurusan berhasil disimpan')
-       document.location = 'editdatajurusan.php';
-       </script>";
-    }else {
-        echo "<script>alert('Data jurusan Gagal disimpan')
-       document.location = 'editdatajurusan.php';
-       </script>";
-    }
-    
-}
-
-
-
- ?>
-
-
 <?php include 'footer.php'; ?>
-
-<script type="text/javascript">
-    $('.view_data').click(function(){
-        var id_jurusan = $(this).attr('id');
-        $.ajax({
-            url: 'view.php',
-            method: 'post',
-            data: {id_jurusan:id_jurusan},
-            success:function(data){
-                $('#datajurusan').html(data)
-                $('#myModal').modal('show');
-            }
-        })
-
-    })
-</script>
-
-
-<?php 
-if(isset($_POST['edit'])) {
-    $id_jurusan = $_POST['id_jurusan'];
-    $nama_jurusan = htmlentities(strip_tags(strtoupper($_POST['nama_jurusan'])));
-    $query = "UPDATE jurusan SET nama_jurusan = '$nama_jurusan' WHERE id_jurusan = '$id_jurusan'";
-    $exec = mysqli_query($conn,$query);
-    if($exec) {
-        echo "<script>alert('data jurusan berhasil diedit')
-        document.location = 'editdatajurusan.php' </script>;
-        "
-        ;
-    }else {
-       echo "<script>alert('data jurusan gagal diedit')
-        document.location = 'editdatajurusan.php' </script>;
-        "
-        ;
-    }
-}
-
-
-
- ?>

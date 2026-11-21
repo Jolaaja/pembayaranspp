@@ -3,6 +3,10 @@
 Aplikasi pembayaran SPP berbasis PHP dan MySQL untuk mengelola data siswa,
 kelas, jurusan, angkatan, transaksi pembayaran, dan laporan.
 
+Antarmuka administrator telah diperbarui dengan layout responsif dan aset
+CSS/JavaScript lokal. Bootstrap lama tetap digunakan hanya sebagai dasar grid;
+menu, pencarian tabel, dan modal tidak memerlukan direktori `vendor`.
+
 ## Persyaratan
 
 - PHP 8.0 atau lebih baru
@@ -46,6 +50,9 @@ bahwa `.env.example` bukan pembaca konfigurasi otomatis; gunakan environment
 variable milik Laragon, Apache, Nginx, atau terminal.
 
 5. Jalankan aplikasi dari browser melalui Laragon atau web server lokal.
+
+Saat menambahkan siswa, isi NISN yang valid. Sistem membuat jadwal SPP 36 bulan
+dengan jatuh tempo tanggal 10, dimulai dari bulan berjalan.
 
 > Migrasi hanya memulihkan struktur tabel, bukan data yang sudah terhapus.
 > Untuk pemulihan data lama, diperlukan backup database (misalnya ekspor SQL).

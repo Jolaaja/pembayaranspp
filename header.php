@@ -1,216 +1,76 @@
 <?php
 require_once __DIR__ . '/app.php';
 require_login();
+
+$currentPage = basename($_SERVER['PHP_SELF']);
+$pageInfo = [
+    'index.php' => ['Ringkasan', 'Pantau pemasukan dan aktivitas pembayaran sekolah.'],
+    'pembayaran.php' => ['Pembayaran SPP', 'Cari siswa dan kelola pembayaran bulanan.'],
+    'datasiswa.php' => ['Data siswa', 'Lihat daftar siswa dan informasi akademik.'],
+    'editdatasiswa.php' => ['Kelola siswa', 'Tambah, perbarui, dan kelola data siswa.'],
+    'editdatakelas.php' => ['Kelola kelas', 'Atur daftar kelas sekolah.'],
+    'editdatajurusan.php' => ['Kelola jurusan', 'Atur program dan jurusan sekolah.'],
+    'editdataangkatan.php' => ['Kelola angkatan', 'Atur tahun angkatan dan nominal SPP.'],
+    'laporan.php' => ['Laporan', 'Pilih periode dan cetak rekap pembayaran.'],
+    'adminedit.php' => ['Pengaturan akun', 'Perbarui informasi akun administrator.'],
+];
+[$pageTitle, $pageDescription] = $pageInfo[$currentPage] ?? ['Aplikasi SPP', 'Pengelolaan pembayaran sekolah.'];
+$adminName = (string) ($_SESSION['nama_admin'] ?? 'Administrator');
+$adminInitial = strtoupper(substr($adminName, 0, 1));
 ?>
 <!DOCTYPE html>
 <html lang="id">
-
 <head>
-
     <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="">
-
-    <title>SPP 2026 | Pembayaran Sekolah</title>
-
-    <!-- Custom fonts for this template-->
-    <!-- Custom fonts for this template-->
-    <link href="foto/logos.png" rel="icon" type="images/x-icon">
-    <link href="vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
-    <link
-        href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i"
-        rel="stylesheet">
-
-    <!-- Custom styles for this template-->
-    <link href="css/sb-admin-2.min.css" rel="stylesheet">
-    <link href="css/modern.css" rel="stylesheet">
-    <link href="vendor/datatables/dataTables.bootstrap4.min.css" rel="stylesheet">
-    <link href="bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script type="text/javascript" src="js/Chart.js"></script>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#153a3a">
+    <meta name="description" content="Aplikasi pengelolaan pembayaran SPP sekolah">
+    <title><?= e($pageTitle) ?> | SPP</title>
+    <link rel="stylesheet" href="css/sb-admin-2.min.css">
+    <link rel="stylesheet" href="css/modern.css">
 </head>
+<body class="app-body">
+<div class="app-shell">
+    <aside class="app-sidebar" id="appSidebar">
+        <a class="brand-lockup" href="index.php" aria-label="SPP, ke ringkasan">
+            <span class="brand-mark">S</span>
+            <span class="brand-copy"><strong>SEKOLAH</strong><small>PORTAL KEUANGAN</small></span>
+        </a>
+        <div class="sidebar-caption">MENU UTAMA</div>
+        <nav class="side-nav" aria-label="Navigasi utama">
+            <a class="side-link <?= $currentPage === 'index.php' ? 'is-active' : '' ?>" href="index.php"><span class="side-icon">⌂</span><span>Ringkasan</span></a>
+            <a class="side-link <?= $currentPage === 'pembayaran.php' ? 'is-active' : '' ?>" href="pembayaran.php"><span class="side-icon">↗</span><span>Pembayaran</span></a>
+            <a class="side-link <?= $currentPage === 'datasiswa.php' ? 'is-active' : '' ?>" href="datasiswa.php"><span class="side-icon">♙</span><span>Data siswa</span></a>
+            <div class="sidebar-caption sidebar-caption-spaced">DATA SEKOLAH</div>
+            <a class="side-link <?= $currentPage === 'editdatasiswa.php' ? 'is-active' : '' ?>" href="editdatasiswa.php"><span class="side-icon">＋</span><span>Kelola siswa</span></a>
+            <a class="side-link <?= $currentPage === 'editdatakelas.php' ? 'is-active' : '' ?>" href="editdatakelas.php"><span class="side-icon">▦</span><span>Kelas</span></a>
+            <a class="side-link <?= $currentPage === 'editdatajurusan.php' ? 'is-active' : '' ?>" href="editdatajurusan.php"><span class="side-icon">◇</span><span>Jurusan</span></a>
+            <a class="side-link <?= $currentPage === 'editdataangkatan.php' ? 'is-active' : '' ?>" href="editdataangkatan.php"><span class="side-icon">◷</span><span>Angkatan &amp; biaya</span></a>
+            <div class="sidebar-caption sidebar-caption-spaced">LAINNYA</div>
+            <a class="side-link <?= $currentPage === 'laporan.php' ? 'is-active' : '' ?>" href="laporan.php"><span class="side-icon">▤</span><span>Laporan</span></a>
+        </nav>
+        <div class="sidebar-foot">
+            <span class="status-dot"></span>
+            <span><strong>Sistem aktif</strong><small>Data tersimpan di sekolah</small></span>
+        </div>
+    </aside>
 
-<body id="page-top">
-
-    <!-- Page Wrapper -->
-    <div id="wrapper">
-
-        <!-- Sidebar -->
-        <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
-
-            <!-- Sidebar - Brand -->
-            <a class="sidebar-brand d-flex align-items-center justify-content-center" href="index.php">
-                <div class="sidebar-brand-icon rotate-n-15">
-                   
-                </div>
-                <div class="sidebar-brand-text mx-3">Aplikasi Pembayaran SPP Sekolah</div>
-            </a>
-
-            <!-- Divider -->
-            <hr class="sidebar-divider my-0">
-
-            <!-- Nav Item - Dashboard -->
-            <li class="nav-item active">
-                <a class="nav-link" href="index.php">
-                    <i class="fas fa-fw fa-tachometer-alt"></i>
-                    <span>Dashboard</span></a>
-            </li>
-
-            <!-- Divider -->
-            <hr class="sidebar-divider">
-
-            <!-- Heading -->
-            <div class="sidebar-heading">
-                Interface
+    <div class="app-main">
+        <header class="app-topbar">
+            <button type="button" class="icon-button mobile-menu" data-sidebar-toggle aria-label="Buka navigasi"><span>☰</span></button>
+            <div class="topbar-context"><span class="eyebrow">PORTAL ADMINISTRATOR</span><span class="topbar-date"><?= date('d/m/Y') ?></span></div>
+            <div class="topbar-account">
+                <a class="account-copy" href="adminedit.php"><strong><?= e($adminName) ?></strong><small>Pengaturan akun</small></a>
+                <a class="account-avatar" href="adminedit.php" aria-label="Pengaturan akun"><?= e($adminInitial) ?></a>
+                <form action="logout.php" method="post">
+                    <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                    <button class="account-logout" type="submit" title="Keluar" aria-label="Keluar">↗</button>
+                </form>
             </div>
-
-            <!-- Nav Item - Pages Collapse Menu -->
-            <li class="nav-item">
-                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo"
-                    aria-expanded="true" aria-controls="collapseTwo">
-                    <i class="fas fa-fw fa-cog"></i>
-                    <span>Transaksi SPP</span>
-                </a>
-                <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
-                    <div class="bg-white py-2 collapse-inner rounded">
-                        <h6 class="collapse-header">Custom Components:</h6>
-                        <a class="collapse-item" href="Pembayaran.php">Bayar SPP Siswa</a>
-                       
-                    </div>
-                </div>
-            </li>
-
-            <!-- Nav Item - Utilities Collapse Menu -->
-            <li class="nav-item">
-                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseUtilities"
-                    aria-expanded="true" aria-controls="collapseUtilities">
-                    <i class="fas fa-fw fa-wrench"></i>
-                    <span>Data Siswa</span>
-                </a>
-                <div id="collapseUtilities" class="collapse" aria-labelledby="headingUtilities"
-                    data-parent="#accordionSidebar">
-                    <div class="bg-white py-2 collapse-inner rounded">
-                        <h6 class="collapse-header">Custom Utilities:</h6>
-                        <a class="collapse-item" href="datasiswa.php">Lihat Data Siswa</a>
-                        
-                    </div>
-                </div>
-            </li>
-
-            <!-- Divider -->
-            <hr class="sidebar-divider">
-
-            <!-- Heading -->
-            <div class="sidebar-heading">
-                Addons
+        </header>
+        <main class="app-content">
+            <div class="page-heading">
+                <div><span class="eyebrow">RUANG KERJA</span><h1><?= e($pageTitle) ?></h1><p><?= e($pageDescription) ?></p></div>
             </div>
-
-            <!-- Nav Item - Pages Collapse Menu -->
-            <li class="nav-item">
-                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapsePages"
-                    aria-expanded="true" aria-controls="collapsePages">
-                    <i class="fas fa-fw fa-folder"></i>
-                    <span>Master Data</span>
-                </a>
-                <div id="collapsePages" class="collapse" aria-labelledby="headingPages" data-parent="#accordionSidebar">
-                    <div class="bg-white py-2 collapse-inner rounded">
-                        <a class="collapse-item" href="editdatasiswa.php">Data Siswa</a>
-                        <a class="collapse-item" href="editdatakelas.php">Data Kelas</a>
-                        <a class="collapse-item" href="editdatajurusan.php">Data Jurusan</a>
-                        <a class="collapse-item" href="editdataangkatan.php">Data Angkatan</a>
-                        <!--  <a class="collapse-item" href="dataadmin.php">Data Admin</a>
-                         -->
-                    </div>
-                </div>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapsePages1"
-                    aria-expanded="true" aria-controls="collapsePages">
-                    <i class="fas fa-fw fa-folder"></i>
-                    <span>Laporan</span>
-                </a>
-                <div id="collapsePages1" class="collapse" aria-labelledby="headingPages" data-parent="#accordionSidebar">
-                    <div class="bg-white py-2 collapse-inner rounded">
-                        <a class="collapse-item" href="laporan.php">Cetak Laporan</a>
-                     
-                    </div>
-                </div>
-            </li>
-
-           
-
-            <!-- Divider -->
-            <hr class="sidebar-divider d-none d-md-block">
-
-            <!-- Sidebar Toggler (Sidebar) -->
-            <div class="text-center d-none d-md-inline">
-                <button class="rounded-circle border-0" id="sidebarToggle"></button>
-            </div>
-
-          
-
-        </ul>
-        <!-- End of Sidebar -->
-
-        <!-- Content Wrapper -->
-        <div id="content-wrapper" class="d-flex flex-column">
-
-            <!-- Main Content -->
-            <div id="content">
-
-                <!-- Topbar -->
-                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
-
-                    <!-- Sidebar Toggle (Topbar) -->
-                    <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
-                        <i class="fa fa-bars"></i>
-                    </button>
-
-                    <!-- Topbar Search -->
-                    
-
-                    <!-- Topbar Navbar -->
-                    <ul class="navbar-nav ml-auto">
-
-                       
-
-
-                     
-                        <div class="topbar-divider d-none d-sm-block"></div>
-
-                        <!-- Nav Item - User Information -->
-                        <li class="nav-item dropdown no-arrow">
-                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
-                                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <span class="mr-2 d-none d-lg-inline text-gray-600 small"><?= $_SESSION['nama_admin'] ?></span>
-                                <img class="img-profile rounded-circle"
-                                    src="img/undraw_profile.svg">
-                            </a>
-                            <!-- Dropdown - User Information -->
-                            <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
-                                aria-labelledby="userDropdown">
-                                <a class="dropdown-item" href="adminedit.php?id_admin=<?= $_SESSION['admin'] ?>">
-                                    <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i>
-                                    Profile
-                                </a>
-                                
-                             
-                                <div class="dropdown-divider"></div>
-                                <a class="dropdown-item" href="logout.php" >
-                                    <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
-                                    Logout
-                                </a>
-                            </div>
-                        </li>
-
-                    </ul>
-
-                </nav>
-                <!-- End of Topbar -->
-
-                <!-- Begin Page Content -->
-                <div class="container-fluid">
-
-                   
+            <?php show_flash(); ?>
+            <div class="container-fluid page-container">

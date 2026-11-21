@@ -1,23 +1,50 @@
 <?php
-include 'function/function_rupiah.php';
- include 'header.php';
-include 'koneksi.php';
-
-if(isset($_GET['id_angkatan'])) {
-    $id_angkatan = $_GET['id_angkatan'];
-    $exec = mysqli_query($conn,"DELETE FROM angkatan WHERE id_angkatan='$id_angkatan'");
-    if($exec) {
-       echo "<script>alert('Data angkatan berhasil dihapus')
-       document.location = 'editdataangkatan.php';
-       </script>";
-    }else {
-        echo "<script>alert('Data angkatan gagal dihapus')
-       document.location = 'editdataangkatan.php';
-       </script>";
+include __DIR__ . '/function/function_rupiah.php';
+require_once __DIR__ . '/app.php';
+require_login();
+include __DIR__ . '/koneksi.php';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
+    if (csrf_validate()) {
+        $id = filter_var($_POST['id_angkatan'] ?? null, FILTER_VALIDATE_INT);
+        if ($id) {
+            $usage = db_execute($conn, 'SELECT id_siswa FROM siswa WHERE id_angkatan = ? LIMIT 1', 'i', [$id]);
+            if (mysqli_fetch_assoc(mysqli_stmt_get_result($usage))) {
+                flash('Angkatan masih digunakan oleh data siswa.', 'danger');
+            } else {
+                db_execute($conn, 'DELETE FROM angkatan WHERE id_angkatan = ?', 'i', [$id]);
+                flash('Data angkatan berhasil dihapus.');
+            }
+        } else {
+            flash('ID angkatan tidak valid.', 'danger');
+        }
+    } else {
+        flash('Sesi formulir tidak valid. Coba lagi.', 'danger');
     }
+    header('Location: editdataangkatan.php');
+    exit;
 }
-
- ?>
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['simpan']) || isset($_POST['edit']))) {
+    if (!csrf_validate()) {
+        flash('Sesi formulir tidak valid. Coba lagi.', 'danger');
+    } else {
+        $name = trim(strtoupper((string) ($_POST['nama_angkatan'] ?? '')));
+        $fee = filter_var($_POST['biaya'] ?? null, FILTER_VALIDATE_INT);
+        $id = isset($_POST['edit']) ? filter_var($_POST['id_angkatan'] ?? null, FILTER_VALIDATE_INT) : null;
+        if ($name === '' || $fee === false || $fee === null || $fee < 0 || (isset($_POST['edit']) && !$id)) {
+            flash('Lengkapi nama angkatan dan biaya dengan benar.', 'danger');
+        } elseif (isset($_POST['edit'])) {
+            db_execute($conn, 'UPDATE angkatan SET nama_angkatan = ?, biaya = ? WHERE id_angkatan = ?', 'ssi', [$name, (string) $fee, $id]);
+            flash('Angkatan berhasil diperbarui.');
+        } else {
+            db_execute($conn, 'INSERT INTO angkatan (nama_angkatan, biaya) VALUES (?, ?)', 'ss', [$name, (string) $fee]);
+            flash('Angkatan berhasil ditambahkan.');
+        }
+    }
+    header('Location: editdataangkatan.php');
+    exit;
+}
+include __DIR__ . '/header.php';
+?>
 
 <!-- button triger -->
  <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#exampleModal">Tambah Data</button>
@@ -33,7 +60,7 @@ if(isset($_GET['id_angkatan'])) {
                                     <thead>
                                         <tr>
                                             <th>No</th>
-                                            <th>Nama Jurusan</th>
+                                            <th>Angkatan</th>
                                             <th>Biaya</th>
                                             <th>Aksi</th>
                                         </tr>
@@ -49,11 +76,11 @@ if(isset($_GET['id_angkatan'])) {
                                       
                                         <tr>
                                             <td><?= $no++ ?></td>
-                                            <td><?= $res['nama_angkatan'] ?></td>
+                                            <td><?= e($res['nama_angkatan']) ?></td>
                                             <td><?= format_rupiah($res['biaya']) ?></td>
                                             <td>
-                                                <a href="editdataangkatan.php?id_angkatan=<?= $res['id_angkatan'] ?>" class="btn btn-sm btn-danger" onclick="return confirm('Apakah Yakin Ingin Menghapus Data?')">Hapus</a>
-                                                 <a href="#" class="view_data btn btn-sm btn-warning"data-bs-toggle="modal" data-bs-target="#myModal" id="<?php echo $res['id_angkatan']; ?>">Edit</a>
+                                                <form method="post" class="d-inline" onsubmit="return confirm('Hapus data angkatan ini?')"><input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>"><input type="hidden" name="id_angkatan" value="<?= (int) $res['id_angkatan'] ?>"><button type="submit" name="delete" class="btn btn-sm btn-danger">Hapus</button></form>
+                                                <a href="#" class="view_data btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#myModal" id="<?= (int) $res['id_angkatan'] ?>">Edit</a>
                                             </td>
                                         </tr>
                                     <?php endwhile; ?>
@@ -73,12 +100,10 @@ if(isset($_GET['id_angkatan'])) {
       </div>
       <div class="modal-body">
         <form action="" method="POST">
-            <input type="text" name="nama_angkatan" placeholder="Nama Angkatan" class="form-control mb-2">
-              <input type="text" name="biaya" placeholder="Biaya SPP" class="form-control mb-2">
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        <button type="Submit" name="simpan" class="btn btn-primary">Simpan</button>
+            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+            <div class="form-group"><label for="cohort-name">Nama angkatan</label><input id="cohort-name" type="text" name="nama_angkatan" placeholder="Contoh: 2026" class="form-control" maxlength="50" required></div>
+            <div class="form-group"><label for="cohort-fee">Biaya SPP per bulan</label><input id="cohort-fee" type="number" name="biaya" placeholder="Masukkan nominal rupiah" class="form-control" min="0" step="1" required></div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button><button type="submit" name="simpan" class="btn btn-primary">Simpan</button></div>
         </form>
       </div>
     </div>
@@ -102,69 +127,4 @@ if(isset($_GET['id_angkatan'])) {
   </div>
 </div>
 
-<?php 
-
-if(isset($_POST['simpan'])) {
-    $nama_angkatan = htmlentities(strip_tags(strtoupper($_POST['nama_angkatan'])));
-     $biaya = htmlentities(strip_tags(strtoupper($_POST['biaya'])));
-    $query = "INSERT INTO angkatan (nama_angkatan,biaya) values('$nama_angkatan','$biaya')";
-    $exec = mysqli_query($conn, $query);
-    if($exec) {
-       echo "<script>alert('Data angkatan berhasil disimpan')
-       document.location = 'editdataangkatan.php';
-       </script>";
-    }else {
-        echo "<script>alert('Data angkatan Gagal disimpan')
-       document.location = 'editdataangkatan.php';
-       </script>";
-    }
-    
-}
-
-
-
- ?>
-
-
 <?php include 'footer.php'; ?>
-
-<script type="text/javascript">
-    $('.view_data').click(function(){
-        var id_angkatan = $(this).attr('id');
-        $.ajax({
-            url: 'view.php',
-            method: 'post',
-            data: {id_angkatan:id_angkatan},
-            success:function(data){
-                $('#dataangkatan').html(data)
-                $('#myModal').modal('show');
-            }
-        })
-
-    })
-</script>
-
-
-<?php 
-if(isset($_POST['edit'])) {
-    $id_angkatan = $_POST['id_angkatan'];
-    $nama_angkatan = htmlentities(strip_tags(strtoupper($_POST['nama_angkatan'])));
-    $biaya = htmlentities(strip_tags(strtoupper($_POST['biaya'])));
-    $query = "UPDATE angkatan SET nama_angkatan = '$nama_angkatan', biaya = '$biaya' WHERE id_angkatan = '$id_angkatan'";
-    $exec = mysqli_query($conn,$query);
-    if($exec) {
-        echo "<script>alert('data angkatan berhasil diedit')
-        document.location = 'editdataangkatan.php' </script>;
-        "
-        ;
-    }else {
-       echo "<script>alert('data angkatan gagal diedit')
-        document.location = 'editdataangkatan.php' </script>;
-        "
-        ;
-    }
-}
-
-
-
- ?>
