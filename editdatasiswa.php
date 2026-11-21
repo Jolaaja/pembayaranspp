@@ -120,6 +120,11 @@ include __DIR__ . '/header.php';
                                     <?php 
                                     $query = "SELECT siswa.*,angkatan.*,jurusan.*,kelas.* FROM siswa,angkatan,jurusan,kelas WHERE siswa.id_angkatan = angkatan.id_angkatan AND siswa.id_jurusan = jurusan.id_jurusan AND siswa.id_kelas = kelas.id_kelas AND siswa.status = 'aktif' ORDER BY id_siswa";
                                     $exec = mysqli_query($conn,$query);
+                                    if (mysqli_num_rows($exec) === 0) :
+                                     ?>
+                                        <tr><td colspan="7"><div class="directory-empty"><span class="empty-state-icon">♙</span><strong>Belum ada siswa aktif</strong><p>Tambahkan siswa untuk mulai mengelola jadwal pembayaran.</p></div></td></tr>
+                                    <?php
+                                    endif;
                                     while($res = mysqli_fetch_assoc($exec)) :
 
                                      ?>

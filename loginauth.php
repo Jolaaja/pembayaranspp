@@ -67,19 +67,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
         <section class="login-brand-panel">
             <a class="brand-lockup" href="loginauth.php">
                 <span class="brand-mark">S</span>
-                <span class="brand-copy"><strong>SEKOLAH</strong><small>PORTAL KEUANGAN</small></span>
+                <span class="brand-copy"><strong>PORTAL SPP</strong><small>SEKOLAH · KEUANGAN</small></span>
             </a>
             <div>
-                <span class="eyebrow">ADMINISTRASI LEBIH MUDAH</span>
-                <h1>Semua pembayaran, lebih tertata.</h1>
-                <p>Kelola pembayaran sekolah dan data siswa melalui ruang kerja yang aman dan sederhana.</p>
+                <span class="eyebrow">RUANG KERJA SEKOLAH</span>
+                <h1>Keuangan sekolah, lebih teratur.</h1>
+                <p>Pantau pembayaran, kelola data siswa, dan layani kebutuhan administrasi dari satu tempat.</p>
             </div>
-            <div class="login-brand-note">PORTAL ADMINISTRATOR &nbsp;·&nbsp; <?= date('Y') ?></div>
+            <svg class="login-art" viewBox="0 0 360 150" fill="none" aria-hidden="true">
+                <path d="M7 133h346" stroke="rgba(220,244,231,.18)"/>
+                <rect x="37" y="78" width="48" height="55" rx="8" fill="rgba(223,244,233,.16)"/>
+                <rect x="102" y="52" width="48" height="81" rx="8" fill="rgba(223,244,233,.24)"/>
+                <rect x="167" y="31" width="48" height="102" rx="8" fill="rgba(223,244,233,.34)"/>
+                <path d="m25 69 70-22 60 14 66-39 62 18 42-29" stroke="#d7efdf" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+                <circle cx="283" cy="11" r="6" fill="#d7efdf"/>
+                <circle cx="95" cy="47" r="5" fill="#d7efdf"/>
+                <circle cx="155" cy="61" r="5" fill="#d7efdf"/>
+                <circle cx="221" cy="22" r="5" fill="#d7efdf"/>
+            </svg>
+            <div class="login-brand-note">AMAN · RINGKAS · TERPUSAT &nbsp;·&nbsp; <?= date('Y') ?></div>
         </section>
         <section class="login-form-panel">
             <span class="eyebrow">SELAMAT DATANG KEMBALI</span>
             <h2>Masuk ke akun</h2>
-            <p>Gunakan akun administrator sekolah untuk melanjutkan.</p>
+            <p>Gunakan akun administrator atau kasir untuk melanjutkan.</p>
             <?php if (isset($_GET['expired'])): ?>
                 <div class="login-error" role="status">Sesi Anda berakhir. Silakan masuk kembali.</div>
             <?php endif; ?>
@@ -91,11 +102,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
                 <label for="login-user">Username</label>
                 <input id="login-user" class="form-control" type="text" name="user" autocomplete="username" required autofocus>
                 <label for="login-password">Password</label>
-                <input id="login-password" class="form-control" type="password" name="pass" autocomplete="current-password" required>
+                <div class="password-field">
+                    <input id="login-password" class="form-control" type="password" name="pass" autocomplete="current-password" required>
+                    <button class="password-toggle" type="button" data-password-toggle="login-password" aria-label="Tampilkan password" aria-pressed="false">Lihat</button>
+                </div>
                 <button type="submit" name="login" class="btn btn-primary">Masuk ke dashboard <span aria-hidden="true">→</span></button>
             </form>
         </section>
     </div>
 </main>
+<script src="js/app.js" defer></script>
 </body>
 </html>

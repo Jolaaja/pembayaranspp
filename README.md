@@ -10,6 +10,7 @@ direktori `vendor`.
 - PHP 8.0 atau lebih baru
 - MySQL 8 atau MariaDB yang mendukung InnoDB dan foreign key
 - Ekstensi PHP `mysqli`
+- Ekstensi PHP `gd` dan `fileinfo` untuk foto profil
 - Klien `mysql` dan `mysqldump` untuk backup/restore
 
 ## Instalasi dan migrasi
@@ -26,9 +27,11 @@ direktori `vendor`.
    Migrasi mencatat versi yang sudah diterapkan dan aman dijalankan kembali.
    Migrasi `003_financial_integrity.sql` mengubah nominal menjadi `DECIMAL`,
    tanggal menjadi `DATE`, menambah role, arsip siswa, foreign key, audit log,
-   dan riwayat pembayaran. Pemeriksaan awal menghentikan migrasi jika menemukan
-   data lama yang invalid atau duplikat; perbaiki data atau pulihkan backup
-   terlebih dahulu. Migrasi tidak menghapus data lama.
+   dan riwayat pembayaran. Migrasi `004_profile_appearance.sql` menambahkan
+   preferensi avatar gender dan penyimpanan foto profil. Pemeriksaan awal
+   menghentikan migrasi finansial jika menemukan data lama yang invalid atau
+   duplikat; perbaiki data atau pulihkan backup terlebih dahulu. Migrasi tidak
+   menghapus data lama.
 
    Konfigurasi koneksi dapat diberikan melalui environment variable
    `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, dan `DB_PASS`.
@@ -50,6 +53,12 @@ skema ke database yang sudah berisi data.
   menyimpan peristiwa reversal, bukan menghapus riwayat.
 - Setiap siswa baru mendapat 36 jadwal SPP dengan jatuh tempo tanggal 10 mulai
   bulan berjalan. Penghapusan siswa mengarsipkannya agar histori tetap tersedia.
+- Akun dapat memilih avatar default netral, perempuan, atau laki-laki, serta
+  mengunggah foto profil JPG/PNG/WebP hingga 2 MB. Foto dipotong dan dinormalisasi
+  menjadi JPEG, disimpan di database, dan hanya disajikan kepada pengguna login.
+- Dashboard menampilkan tren pemasukan enam bulan terakhir, transaksi terbaru,
+  dan ringkasan tunggakan. Direktori siswa dan alur pembayaran dirancang ulang
+  untuk desktop maupun layar kecil.
 - Laporan dapat difilter berdasarkan rentang tanggal, menampilkan rekap kelas,
   rekap bulanan, dan tunggakan siswa aktif. Ekspor Excel menggunakan CSV.
 - Admin dapat meninjau aktivitas dan riwayat perubahan role di menu Aktivitas.

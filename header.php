@@ -18,7 +18,7 @@ $pageInfo = [
 ];
 [$pageTitle, $pageDescription] = $pageInfo[$currentPage] ?? ['Aplikasi SPP', 'Pengelolaan pembayaran sekolah.'];
 $adminName = (string) ($_SESSION['nama_admin'] ?? 'Administrator');
-$adminInitial = strtoupper(substr($adminName, 0, 1));
+$adminId = (int) $_SESSION['admin'];
 $isAdmin = (string) ($_SESSION['role'] ?? '') === 'admin';
 ?>
 <!DOCTYPE html>
@@ -35,26 +35,26 @@ $isAdmin = (string) ($_SESSION['role'] ?? '') === 'admin';
 <body class="app-body">
 <div class="app-shell">
     <aside class="app-sidebar" id="appSidebar">
-        <a class="brand-lockup" href="index.php" aria-label="SPP, ke ringkasan">
-            <span class="brand-mark">S</span>
-            <span class="brand-copy"><strong>SEKOLAH</strong><small>PORTAL KEUANGAN</small></span>
+        <a class="brand-lockup" href="index.php" aria-label="Portal SPP, ke ringkasan">
+        <span class="brand-mark">S</span>
+        <span class="brand-copy"><strong>PORTAL SPP</strong><small>SEKOLAH · KEUANGAN</small></span>
         </a>
         <div class="sidebar-caption">MENU UTAMA</div>
         <nav class="side-nav" aria-label="Navigasi utama">
-            <a class="side-link <?= $currentPage === 'index.php' ? 'is-active' : '' ?>" href="index.php"><span class="side-icon">⌂</span><span>Ringkasan</span></a>
-            <a class="side-link <?= $currentPage === 'pembayaran.php' ? 'is-active' : '' ?>" href="pembayaran.php"><span class="side-icon">↗</span><span>Pembayaran</span></a>
-            <a class="side-link <?= $currentPage === 'datasiswa.php' ? 'is-active' : '' ?>" href="datasiswa.php"><span class="side-icon">♙</span><span>Data siswa</span></a>
+            <a class="side-link <?= $currentPage === 'index.php' ? 'is-active' : '' ?>" href="index.php"><svg class="side-icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="5" rx="2"/><rect x="13" y="10" width="8" height="11" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/></svg><span>Ringkasan</span></a>
+            <a class="side-link <?= $currentPage === 'pembayaran.php' ? 'is-active' : '' ?>" href="pembayaran.php"><svg class="side-icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 10h18m-13 5h4"/></svg><span>Pembayaran</span></a>
+            <a class="side-link <?= $currentPage === 'datasiswa.php' ? 'is-active' : '' ?>" href="datasiswa.php"><svg class="side-icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0m2-11a3 3 0 0 1 0 6m1 2a5 5 0 0 1 3 3"/></svg><span>Data siswa</span></a>
             <?php if ($isAdmin): ?>
                 <div class="sidebar-caption sidebar-caption-spaced">DATA SEKOLAH</div>
-                <a class="side-link <?= $currentPage === 'editdatasiswa.php' ? 'is-active' : '' ?>" href="editdatasiswa.php"><span class="side-icon">＋</span><span>Kelola siswa</span></a>
-                <a class="side-link <?= $currentPage === 'editdatakelas.php' ? 'is-active' : '' ?>" href="editdatakelas.php"><span class="side-icon">▦</span><span>Kelas</span></a>
-                <a class="side-link <?= $currentPage === 'editdatajurusan.php' ? 'is-active' : '' ?>" href="editdatajurusan.php"><span class="side-icon">◇</span><span>Jurusan</span></a>
-                <a class="side-link <?= $currentPage === 'editdataangkatan.php' ? 'is-active' : '' ?>" href="editdataangkatan.php"><span class="side-icon">◷</span><span>Angkatan &amp; biaya</span></a>
-                <a class="side-link <?= $currentPage === 'adminusers.php' ? 'is-active' : '' ?>" href="adminusers.php"><span class="side-icon">♙</span><span>Pengguna</span></a>
-                <a class="side-link <?= $currentPage === 'auditlog.php' ? 'is-active' : '' ?>" href="auditlog.php"><span class="side-icon">▤</span><span>Aktivitas</span></a>
+                <a class="side-link <?= $currentPage === 'editdatasiswa.php' ? 'is-active' : '' ?>" href="editdatasiswa.php"><svg class="side-icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M19 8v7m-3.5-3.5h7"/></svg><span>Kelola siswa</span></a>
+                <a class="side-link <?= $currentPage === 'editdatakelas.php' ? 'is-active' : '' ?>" href="editdatakelas.php"><svg class="side-icon-svg" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 10v10m6-10v10"/></svg><span>Kelas</span></a>
+                <a class="side-link <?= $currentPage === 'editdatajurusan.php' ? 'is-active' : '' ?>" href="editdatajurusan.php"><svg class="side-icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 9-9 9-9-9 9-9Z"/><circle cx="12" cy="12" r="2"/></svg><span>Jurusan</span></a>
+                <a class="side-link <?= $currentPage === 'editdataangkatan.php' ? 'is-active' : '' ?>" href="editdataangkatan.php"><svg class="side-icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Angkatan &amp; biaya</span></a>
+                <a class="side-link <?= $currentPage === 'adminusers.php' ? 'is-active' : '' ?>" href="adminusers.php"><svg class="side-icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0m2-11a3 3 0 0 1 0 6m1 2a5 5 0 0 1 3 3"/></svg><span>Pengguna</span></a>
+                <a class="side-link <?= $currentPage === 'auditlog.php' ? 'is-active' : '' ?>" href="auditlog.php"><svg class="side-icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h12M9 12h12M9 18h12M3 6h.01M3 12h.01M3 18h.01"/></svg><span>Aktivitas</span></a>
             <?php endif; ?>
             <div class="sidebar-caption sidebar-caption-spaced">LAINNYA</div>
-            <a class="side-link <?= $currentPage === 'laporan.php' ? 'is-active' : '' ?>" href="laporan.php"><span class="side-icon">▤</span><span>Laporan</span></a>
+            <a class="side-link <?= $currentPage === 'laporan.php' ? 'is-active' : '' ?>" href="laporan.php"><svg class="side-icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V4m0 16h17M8 16v-5m5 5V7m5 9V9"/></svg><span>Laporan</span></a>
         </nav>
         <div class="sidebar-foot">
             <span class="status-dot"></span>
@@ -68,10 +68,10 @@ $isAdmin = (string) ($_SESSION['role'] ?? '') === 'admin';
             <div class="topbar-context"><span class="eyebrow">PORTAL KEUANGAN SEKOLAH</span><span class="topbar-date"><?= date('d/m/Y') ?></span></div>
             <div class="topbar-account">
                 <a class="account-copy" href="adminedit.php"><strong><?= e($adminName) ?></strong><small><?= $isAdmin ? 'Administrator · Pengaturan akun' : 'Kasir · Pengaturan akun' ?></small></a>
-                <a class="account-avatar" href="adminedit.php" aria-label="Pengaturan akun"><?= e($adminInitial) ?></a>
+                <a class="profile-avatar-link" href="adminedit.php" aria-label="Buka profil akun"><img class="profile-avatar profile-avatar-topbar" src="avatar.php?id=<?= $adminId ?>" alt=""></a>
                 <form action="logout.php" method="post">
                     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                    <button class="account-logout" type="submit" title="Keluar" aria-label="Keluar">↗</button>
+                    <button class="account-logout" type="submit" title="Keluar" aria-label="Keluar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5m5 5H3m9-9h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7"/></svg></button>
                 </form>
             </div>
         </header>

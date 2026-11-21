@@ -111,11 +111,11 @@ $admins = mysqli_query($conn, 'SELECT id_admin, nama_admin, user_admin, role FRO
     <div class="card-body">
         <div class="table-responsive">
             <table class="table">
-                <thead><tr><th>Nama</th><th>Username</th><th>Hak akses</th><th>Perbarui role</th></tr></thead>
+                <thead><tr><th>Pengguna</th><th>Username</th><th>Hak akses</th><th>Perbarui role</th></tr></thead>
                 <tbody>
                 <?php while ($user = mysqli_fetch_assoc($admins)): ?>
                     <tr>
-                        <td><?= e($user['nama_admin']) ?><?= (int) $user['id_admin'] === (int) $_SESSION['admin'] ? ' <span class="current-user-tag">Anda</span>' : '' ?></td>
+                        <td><div class="user-identity"><img class="profile-avatar profile-avatar-small" src="avatar.php?id=<?= (int) $user['id_admin'] ?>" alt=""><span><strong><?= e($user['nama_admin']) ?></strong><?= (int) $user['id_admin'] === (int) $_SESSION['admin'] ? '<small>Akun Anda</small>' : '' ?></span></div></td>
                         <td><?= e($user['user_admin']) ?></td>
                         <td><?= $user['role'] === 'admin' ? 'Administrator' : 'Kasir' ?></td>
                         <td>
@@ -134,7 +134,7 @@ $admins = mysqli_query($conn, 'SELECT id_admin, nama_admin, user_admin, role FRO
                 </tbody>
             </table>
         </div>
-        <p class="form-intro mb-0">Akun dan aktivitas tidak dihapus untuk menjaga riwayat audit. Minta pengguna mengganti password awal setelah login.</p>
+        <p class="form-intro mb-0">Pengguna dapat mengatur gender avatar dan foto profil melalui menu profil. Akun tidak dihapus agar jejak audit tetap utuh.</p>
     </div>
 </section>
 <?php include __DIR__ . '/footer.php'; ?>

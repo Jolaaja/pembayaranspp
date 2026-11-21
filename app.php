@@ -21,6 +21,78 @@ function is_valid_iso_date(string $value): bool
         && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0));
 }
 
+function normalize_profile_photo(array $upload): string
+{
+    $error = (int) ($upload['error'] ?? UPLOAD_ERR_NO_FILE);
+    if ($error !== UPLOAD_ERR_OK) {
+        throw new InvalidArgumentException($error === UPLOAD_ERR_NO_FILE
+            ? 'Pilih foto terlebih dahulu.'
+            : 'Foto gagal diunggah. Pilih file lain dan coba lagi.');
+    }
+
+    $temporaryPath = (string) ($upload['tmp_name'] ?? '');
+    $size = (int) ($upload['size'] ?? 0);
+    if ($temporaryPath === '' || !is_uploaded_file($temporaryPath)) {
+        throw new InvalidArgumentException('File foto tidak valid.');
+    }
+    if ($size < 1 || $size > 2 * 1024 * 1024) {
+        throw new InvalidArgumentException('Ukuran foto maksimal 2 MB.');
+    }
+    if (!extension_loaded('gd')) {
+        throw new RuntimeException('Fitur pemrosesan foto memerlukan ekstensi GD.');
+    }
+
+    $fileInfo = new finfo(FILEINFO_MIME_TYPE);
+    $mime = $fileInfo->file($temporaryPath);
+    if (!in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true)) {
+        throw new InvalidArgumentException('Format foto harus JPG, PNG, atau WebP.');
+    }
+
+    $imageInfo = getimagesize($temporaryPath);
+    if ($imageInfo === false || $imageInfo[0] < 1 || $imageInfo[1] < 1
+        || $imageInfo[0] > 6000 || $imageInfo[1] > 6000
+        || $imageInfo[0] * $imageInfo[1] > 12000000) {
+        throw new InvalidArgumentException('Dimensi foto terlalu besar atau file tidak dapat dibaca.');
+    }
+
+    $contents = file_get_contents($temporaryPath);
+    if ($contents === false) {
+        throw new RuntimeException('Foto tidak dapat dibaca.');
+    }
+    $source = @imagecreatefromstring($contents);
+    if ($source === false) {
+        throw new InvalidArgumentException('File foto tidak dapat diproses.');
+    }
+
+    $avatar = imagecreatetruecolor(512, 512);
+    if ($avatar === false) {
+        imagedestroy($source);
+        throw new RuntimeException('Gagal menyiapkan gambar profil.');
+    }
+    $background = imagecolorallocate($avatar, 255, 255, 255);
+    imagefill($avatar, 0, 0, $background);
+
+    try {
+        $side = min($imageInfo[0], $imageInfo[1]);
+        $sourceX = (int) floor(($imageInfo[0] - $side) / 2);
+        $sourceY = (int) floor(($imageInfo[1] - $side) / 2);
+        if (!imagecopyresampled($avatar, $source, 0, 0, $sourceX, $sourceY, 512, 512, $side, $side)) {
+            throw new RuntimeException('Gagal memproses gambar profil.');
+        }
+
+        ob_start();
+        $saved = imagejpeg($avatar, null, 86);
+        $photo = ob_get_clean();
+        if (!$saved || !is_string($photo) || $photo === '') {
+            throw new RuntimeException('Gagal menyimpan gambar profil.');
+        }
+        return $photo;
+    } finally {
+        imagedestroy($source);
+        imagedestroy($avatar);
+    }
+}
+
 function require_login(): void
 {
     if (!isset($_SESSION['admin'])) {

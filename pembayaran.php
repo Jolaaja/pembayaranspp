@@ -1,153 +1,158 @@
-<?php 
-include 'function/function_rupiah.php';
-include 'koneksi.php';
-include 'header.php';
- ?>
- <div class="card shadow mb-4">
-  <div class="card-body">
-  	<form action="" method="get">
- 	<table class="table">
- 		<tr>
- 			<td>NISN</td>
- 			<td>:</td>
- 			<td><input type="text" name="nisn" placeholder="Masukan Nisn Siswa" class="form-control"></td>
- 			<td><button type="submit" class="btn btn-primary" name="cari">Search</button></td>
- 		</tr>    	        	
-    </table>
+<?php
+require_once __DIR__ . '/app.php';
+require_login();
+include __DIR__ . '/function/function_rupiah.php';
+include __DIR__ . '/koneksi.php';
+
+$rawNisn = $_GET['nisn'] ?? '';
+$nisn = is_string($rawNisn) ? trim($rawNisn) : '';
+$student = null;
+$payments = [];
+$paidCount = 0;
+$paidTotal = 0.0;
+$pendingCount = 0;
+$overdueCount = 0;
+
+if ($nisn !== '') {
+    $studentStmt = db_execute(
+        $conn,
+        "SELECT s.id_siswa, s.nisn, s.nama, s.alamat, a.nama_angkatan, a.biaya, j.nama_jurusan, k.nama_kelas
+         FROM siswa s JOIN angkatan a ON a.id_angkatan = s.id_angkatan
+         JOIN jurusan j ON j.id_jurusan = s.id_jurusan
+         JOIN kelas k ON k.id_kelas = s.id_kelas
+         WHERE s.nisn = ? AND s.status = 'aktif' LIMIT 1",
+        's',
+        [$nisn]
+    );
+    $student = mysqli_fetch_assoc(mysqli_stmt_get_result($studentStmt));
+
+    if ($student) {
+        $paymentStmt = db_execute($conn, 'SELECT * FROM pembayaran WHERE id_siswa = ? ORDER BY jatuhtempo ASC', 'i', [(int) $student['id_siswa']]);
+        $paymentResult = mysqli_stmt_get_result($paymentStmt);
+        $today = date('Y-m-d');
+        while ($payment = mysqli_fetch_assoc($paymentResult)) {
+            $payments[] = $payment;
+            if ($payment['ket'] === 'LUNAS') {
+                $paidCount++;
+                $paidTotal += (float) $payment['jumlah'];
+            } elseif ($payment['jatuhtempo'] < $today) {
+                $overdueCount++;
+            } else {
+                $pendingCount++;
+            }
+        }
+    }
+}
+
+include __DIR__ . '/header.php';
+?>
+<section class="card payment-search-card">
+    <div class="card-body">
+        <form method="get" class="payment-search-form">
+            <label class="sr-only" for="student-search">Cari siswa dengan NISN</label>
+            <span class="payment-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg></span>
+            <input id="student-search" class="form-control" type="search" name="nisn" value="<?= e($nisn) ?>" placeholder="Masukkan NISN siswa untuk melihat jadwal SPP" maxlength="50" required>
+            <button type="submit" class="btn btn-primary">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg>
+                Cari siswa
+            </button>
         </form>
-</div>
-</div>
-<?php 
-if (isset($_GET['nisn']) && $_GET['nisn'] != ''){
-        $nisn = trim((string) $_GET['nisn']);
-        $stmt = mysqli_prepare($conn, "SELECT siswa.*, angkatan.*, jurusan.*, kelas.* FROM siswa
-            JOIN angkatan ON siswa.id_angkatan = angkatan.id_angkatan
-            JOIN jurusan ON siswa.id_jurusan = jurusan.id_jurusan
-            JOIN kelas ON siswa.id_kelas = kelas.id_kelas
-            WHERE siswa.nisn = ? AND siswa.status = 'aktif'");
-        mysqli_stmt_bind_param($stmt, 's', $nisn);
-        mysqli_stmt_execute($stmt);
-        $exec = mysqli_stmt_get_result($stmt);
+        <p class="search-hint">Cari berdasarkan NISN aktif yang terdaftar di sekolah.</p>
+    </div>
+</section>
 
-        // die();
-        if(mysqli_num_rows($exec) !== 0) {
-            $siswa = mysqli_fetch_assoc($exec);
-            $id_siswa= $siswa['id_siswa'];
-            $nisn = $siswa['nisn'];
-                    ?>
-
-                   <div class="card shadow mb-4">
-                        <div class="card-header py-3">
-                            <h6 class="m-0 font-weight-bold text-primary">Biodata Siswa</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
-                             
-                                        <tr>
-                                                <td>NISN</td>
-                                                <td><?= e($siswa['nisn']) ?></td>
-                                            </tr>
-                                            <tr>
-                                                <td>Nama Siswa</td>
-                                                <td><?= e($siswa['nama']) ?></td>
-                                            </tr>
-                                            <tr>
-                                                <td>Kelas</td>
-                                                <td><?= e($siswa['nama_kelas']) ?></td>
-                                            </tr>
-                                            <tr>
-                                                <td>Tahun ajaran </td>
-                                                <td><?= e($siswa['nama_angkatan']) ?></td>
-                                            </tr>
-                             
-                             
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-      
-              <!-- Begin Page Content -->
-           
-
-                  
-                    <!-- DataTales Example -->
-                    <div class="card shadow mb-4">
-                        <div class="card-header py-3">
-                            <h6 class="m-0 font-weight-bold text-primary">Data Pembayaran</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-
-                                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
-                                     <thead>
-                                        <tr>
-                                            <td>NO</td>
-                                            <th>Bulan</th>
-                                            <th>Jatuh Tempo</th>
-                                            <th>No Bayar</th>
-                                            <th>Tanggal Bayar</th>
-                                            <th>Jumlah</th>
-                                            <th>Keterangan</th>
-                                            <th>Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    
-                                    <tbody>
-                                      <?php 
-                                   $no=1;
-                                    $stmt = mysqli_prepare($conn, 'SELECT * FROM pembayaran WHERE id_siswa = ? ORDER BY jatuhtempo ASC');
-                                    mysqli_stmt_bind_param($stmt, 'i', $id_siswa);
-                                    mysqli_stmt_execute($stmt);
-                                    $exec = mysqli_stmt_get_result($stmt);
-                                    while($res = mysqli_fetch_assoc($exec)) { ?>
-                                         <tr>
-                                            <td><?= $no++ ?></td>
-                                            <td><?= e($res['bulan']) ?></td>
-                                            <td><?= e($res['jatuhtempo']) ?></td>
-                                            <td><?= e($res['nobayar']) ?></td>
-                                            <td><?= e($res['tglbayar']) ?></td>
-                                            <td><?= format_rupiah($res['jumlah']) ?></td>
-                                            <td><?= e($res['ket']) ?></td>
-                                            <td>
-                                                <?php
-                                            if ($res['ket'] !== 'LUNAS'){
-                                                        echo '<form method="post" action="proses_transaksi.php" class="d-inline">'
-                                                            . '<input type="hidden" name="csrf_token" value="' . e(csrf_token()) . '">'
-                                                            . '<input type="hidden" name="act" value="bayar">'
-                                                            . '<input type="hidden" name="id" value="' . (int) $res['idspp'] . '">'
-                                                            . '<input type="hidden" name="nisn" value="' . e($nisn) . '">'
-                                                            . '<button type="submit" class="btn btn-primary btn-sm" onclick="return confirm(\'Proses pembayaran bulan ini?\')">Bayar</button></form>';
-                                            }else {
-                                                        echo '<form method="post" action="proses_transaksi.php" class="d-inline mr-1">'
-                                                            . '<input type="hidden" name="csrf_token" value="' . e(csrf_token()) . '">'
-                                                            . '<input type="hidden" name="act" value="batal">'
-                                                            . '<input type="hidden" name="id" value="' . (int) $res['idspp'] . '">'
-                                                            . '<input type="hidden" name="nisn" value="' . e($nisn) . '">'
-                                                            . '<button type="submit" class="btn btn-danger btn-sm" onclick="return confirm(\'Batalkan pembayaran ini?\')">Batal</button></form>';
-                                                        echo '<a class="btn btn-success btn-sm" href="cetak_slip_pembayaran.php?idspp=' . (int) $res['idspp'] . '" target="_blank">Cetak</a>';
-                                                
-                                            }
-                                            echo ' <a class="btn btn-secondary btn-sm" href="riwayat_pembayaran.php?idspp=' . (int) $res['idspp'] . '">Riwayat</a>';
-                                                 ?>
-                                            </td>
-                                        </tr>
-                                        <?php } ?>
-                                   </tbody>
-                               
-                                </table>
-
-                            </div>
-                        </div>
-                 <?php 
-         }else {
-                ?>
-                 <div class="card shadow mb-4">
-              <div class="card-body">
-               <h5>Data Tidak Tersedia</h5>
+<?php if ($nisn !== '' && !$student): ?>
+    <section class="card search-result-empty">
+        <div class="card-body">
+            <span class="empty-state-icon">?</span>
+            <h2>Siswa tidak ditemukan</h2>
+            <p>Periksa kembali NISN. Pastikan siswa masih aktif dan datanya sudah terdaftar.</p>
+        </div>
+    </section>
+<?php elseif ($student): ?>
+    <section class="student-payment-profile">
+        <div class="student-profile-main">
+            <span class="student-profile-mark"><?= e(strtoupper(substr($student['nama'], 0, 1))) ?></span>
+            <div class="student-profile-copy">
+                <span class="eyebrow">PROFIL SISWA</span>
+                <h2><?= e($student['nama']) ?></h2>
+                <p>NISN <?= e($student['nisn']) ?> <span>·</span> <?= e($student['nama_kelas']) ?> <span>·</span> <?= e($student['nama_jurusan']) ?></p>
             </div>
-            </div>
-               <?php } ?>
+        </div>
+        <div class="student-profile-meta">
+            <span>Angkatan</span><strong><?= e($student['nama_angkatan']) ?></strong>
+            <span>SPP per bulan</span><strong><?= format_rupiah((float) $student['biaya']) ?></strong>
+        </div>
+    </section>
 
-       <?php } ?>
- <?php include 'footer.php'; ?>
+    <div class="payment-summary-grid">
+        <article class="payment-summary-card"><span class="summary-label">SUDAH LUNAS</span><strong><?= number_format($paidCount, 0, ',', '.') ?> <small>bulan</small></strong><span class="summary-foot"><?= format_rupiah($paidTotal) ?> terbayar</span></article>
+        <article class="payment-summary-card"><span class="summary-label">BELUM JATUH TEMPO</span><strong><?= number_format($pendingCount, 0, ',', '.') ?> <small>tagihan</small></strong><span class="summary-foot">Menunggu pembayaran</span></article>
+        <article class="payment-summary-card <?= $overdueCount > 0 ? 'payment-summary-alert' : '' ?>"><span class="summary-label">TERLAMBAT</span><strong><?= number_format($overdueCount, 0, ',', '.') ?> <small>tagihan</small></strong><span class="summary-foot">Jadwal melewati jatuh tempo</span></article>
+    </div>
+
+    <section class="card payment-schedule-card">
+        <div class="card-header card-header-actions">
+            <div><h6>Jadwal pembayaran</h6><small><?= number_format(count($payments), 0, ',', '.') ?> jadwal SPP tercatat</small></div>
+            <span class="schedule-period"><?= e($student['nama_angkatan']) ?></span>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table payment-schedule-table">
+                    <thead><tr><th>Bulan</th><th>Jatuh tempo</th><th>No. bayar</th><th>Tanggal bayar</th><th>Nominal</th><th>Status</th><th>Aksi</th></tr></thead>
+                    <tbody>
+                    <?php if (!$payments): ?>
+                        <tr><td colspan="7" class="empty-state">Belum ada jadwal pembayaran untuk siswa ini.</td></tr>
+                    <?php else: ?>
+                        <?php foreach ($payments as $payment): ?>
+                            <?php
+                            $isPaid = $payment['ket'] === 'LUNAS';
+                            $isOverdue = !$isPaid && $payment['jatuhtempo'] < date('Y-m-d');
+                            $statusLabel = $isPaid ? 'Lunas' : ($isOverdue ? 'Terlambat' : 'Belum lunas');
+                            $statusClass = $isPaid ? 'status-paid' : ($isOverdue ? 'status-overdue' : 'status-pending');
+                            ?>
+                            <tr>
+                                <td><strong class="payment-month"><?= e($payment['bulan']) ?></strong></td>
+                                <td><?= e(date('d/m/Y', strtotime($payment['jatuhtempo']))) ?></td>
+                                <td><?= e($payment['nobayar'] ?: '—') ?></td>
+                                <td><?= $payment['tglbayar'] ? e(date('d/m/Y', strtotime($payment['tglbayar']))) : '—' ?></td>
+                                <td><strong><?= format_rupiah((float) $payment['jumlah']) ?></strong></td>
+                                <td><span class="status-chip <?= $statusClass ?>"><span></span><?= $statusLabel ?></span></td>
+                                <td>
+                                    <div class="payment-row-actions">
+                                        <?php if ($isPaid): ?>
+                                            <form method="post" action="proses_transaksi.php" onsubmit="return confirm('Batalkan pembayaran <?= e($payment['bulan']) ?>? Riwayat transaksi tetap disimpan.')">
+                                                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                                <input type="hidden" name="act" value="batal">
+                                                <input type="hidden" name="id" value="<?= (int) $payment['idspp'] ?>">
+                                                <input type="hidden" name="nisn" value="<?= e($student['nisn']) ?>">
+                                                <button type="submit" class="btn btn-danger btn-sm">Batalkan</button>
+                                            </form>
+                                            <a class="btn btn-success btn-sm" href="cetak_slip_pembayaran.php?idspp=<?= (int) $payment['idspp'] ?>" target="_blank" rel="noopener">Slip</a>
+                                        <?php else: ?>
+                                            <form method="post" action="proses_transaksi.php" onsubmit="return confirm('Konfirmasi pembayaran <?= e($payment['bulan']) ?>?')">
+                                                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                                                <input type="hidden" name="act" value="bayar">
+                                                <input type="hidden" name="id" value="<?= (int) $payment['idspp'] ?>">
+                                                <input type="hidden" name="nisn" value="<?= e($student['nisn']) ?>">
+                                                <button type="submit" class="btn btn-primary btn-sm">Proses</button>
+                                            </form>
+                                        <?php endif; ?>
+                                        <a class="payment-history-link" href="riwayat_pembayaran.php?idspp=<?= (int) $payment['idspp'] ?>">Riwayat</a>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+<?php else: ?>
+    <section class="payment-intro">
+        <span class="payment-intro-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v17H6.5A2.5 2.5 0 0 1 4 17.5z"/><path d="M4 6h13M8 10h8m-8 4h6"/></svg></span>
+        <div><h2>Kelola pembayaran dengan mudah</h2><p>Masukkan NISN untuk melihat jadwal, status, dan riwayat pembayaran siswa.</p></div>
+    </section>
+<?php endif; ?>
+<?php include __DIR__ . '/footer.php'; ?>

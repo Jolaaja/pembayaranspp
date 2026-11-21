@@ -29,6 +29,19 @@
     }
 
     document.addEventListener('click', function (event) {
+        var passwordToggle = event.target.closest('[data-password-toggle]');
+        if (passwordToggle) {
+            var passwordInput = document.getElementById(passwordToggle.getAttribute('data-password-toggle'));
+            if (passwordInput) {
+                var showPassword = passwordInput.type === 'password';
+                passwordInput.type = showPassword ? 'text' : 'password';
+                passwordToggle.textContent = showPassword ? 'Sembunyikan' : 'Lihat';
+                passwordToggle.setAttribute('aria-label', showPassword ? 'Sembunyikan password' : 'Tampilkan password');
+                passwordToggle.setAttribute('aria-pressed', showPassword ? 'true' : 'false');
+            }
+            return;
+        }
+
         var toggle = event.target.closest('[data-sidebar-toggle]');
         if (toggle) {
             openSidebar();
@@ -117,4 +130,17 @@
             });
         });
     });
+
+    var profilePhotoInput = document.getElementById('profile-photo');
+    var profileAvatarPreview = document.querySelector('[data-profile-avatar-preview]');
+    if (profilePhotoInput && profileAvatarPreview) {
+        var previewUrl = null;
+        profilePhotoInput.addEventListener('change', function () {
+            var file = profilePhotoInput.files && profilePhotoInput.files[0];
+            if (!file || !file.type.startsWith('image/')) return;
+            if (previewUrl) URL.revokeObjectURL(previewUrl);
+            previewUrl = URL.createObjectURL(file);
+            profileAvatarPreview.src = previewUrl;
+        });
+    }
 }());

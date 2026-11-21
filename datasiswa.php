@@ -1,48 +1,45 @@
 <?php
+require_once __DIR__ . '/app.php';
+require_login();
+include __DIR__ . '/koneksi.php';
 
- include 'header.php';
-include 'koneksi.php';
- ?>
-
-
-                    <!-- DataTales Example -->
-                    <div class="card shadow mb-4">
-                        <div class="card-header py-3">
-                            <h6 class="m-0 font-weight-bold text-primary">Data Siswa</h6>
-                        </div>
-                        <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
-                                    <thead>
-                                        <tr>
-                                            <th>NISN</th>
-                                            <th>Nama Siswa</th>
-                                            <th>Angkatan</th>
-                                            <th>Kelas</th>
-                                            <th>Jurusan</th>
-                                            <th>Alamat</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                    <?php 
-                                    $query = "SELECT siswa.*,angkatan.*,jurusan.*,kelas.* FROM siswa,angkatan,jurusan,kelas WHERE siswa.id_angkatan = angkatan.id_angkatan AND siswa.id_jurusan = jurusan.id_jurusan AND siswa.id_kelas = kelas.id_kelas AND siswa.status = 'aktif' ORDER BY id_siswa";
-                                    $exec = mysqli_query($conn,$query);
-                                    while($res = mysqli_fetch_assoc($exec)) :
-
-                                     ?>
-                                      
-                                        <tr>
-                                            <td><?= e($res['nisn']) ?></td>
-                                            <td><?= e($res['nama']) ?></td>
-                                            <td><?= e($res['nama_angkatan']) ?></td>
-                                            <td><?= e($res['nama_kelas']) ?></td>
-                                            <td><?= e($res['nama_jurusan']) ?></td>
-                                            <td><?= e($res['alamat']) ?></td>
-                                        </tr>
-                                    <?php endwhile; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-<?php include 'footer.php'; ?>
+$students = mysqli_query(
+    $conn,
+    "SELECT s.nisn, s.nama, a.nama_angkatan, j.nama_jurusan, k.nama_kelas
+     FROM siswa s JOIN angkatan a ON a.id_angkatan = s.id_angkatan
+     JOIN jurusan j ON j.id_jurusan = s.id_jurusan
+     JOIN kelas k ON k.id_kelas = s.id_kelas
+     WHERE s.status = 'aktif' ORDER BY s.nama, s.nisn"
+);
+$countRow = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total FROM siswa WHERE status = 'aktif'"));
+include __DIR__ . '/header.php';
+?>
+<section class="card student-directory-card">
+    <div class="card-header card-header-actions">
+        <div><h6>Direktori siswa aktif</h6><small><?= number_format((int) $countRow['total'], 0, ',', '.') ?> siswa terdaftar</small></div>
+        <?php if (($_SESSION['role'] ?? '') === 'admin'): ?><a class="btn btn-primary btn-sm" href="editdatasiswa.php"><span aria-hidden="true">＋</span> Kelola siswa</a><?php endif; ?>
+    </div>
+    <div class="card-body">
+        <?php if ((int) $countRow['total'] > 0): ?>
+            <p class="directory-hint">Gunakan pencarian tabel untuk menemukan siswa berdasarkan nama, NISN, kelas, atau angkatan.</p>
+        <?php endif; ?>
+        <div class="table-responsive">
+            <table class="table student-directory-table">
+                <thead><tr><th>Siswa</th><th>Kelas</th><th>Jurusan</th><th>Angkatan</th></tr></thead>
+                <tbody>
+                <?php $hasStudents = false; while ($student = mysqli_fetch_assoc($students)): $hasStudents = true; ?>
+                    <tr>
+                        <td><div class="student-directory-identity"><span class="student-directory-mark"><?= e(strtoupper(substr($student['nama'], 0, 1))) ?></span><span><strong><?= e($student['nama']) ?></strong><small>NISN <?= e($student['nisn']) ?></small></span></div></td>
+                        <td><span class="table-tag"><?= e($student['nama_kelas']) ?></span></td>
+                        <td><?= e($student['nama_jurusan']) ?></td>
+                        <td><?= e($student['nama_angkatan']) ?></td>
+                    </tr>
+                <?php endwhile; if (!$hasStudents): ?>
+                    <tr><td colspan="4"><div class="directory-empty"><span class="empty-state-icon">♙</span><strong>Belum ada siswa aktif</strong><p>Siswa yang terdaftar akan tampil di direktori ini.</p></div></td></tr>
+                <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+<?php include __DIR__ . '/footer.php'; ?>

@@ -39,6 +39,8 @@ expect_column_type($conn, 'angkatan', 'biaya', 'decimal');
 expect_column_type($conn, 'pembayaran', 'jumlah', 'decimal');
 expect_column_type($conn, 'pembayaran', 'jatuhtempo', 'date');
 expect_column_type($conn, 'pembayaran', 'tglbayar', 'date');
+expect_column_type($conn, 'admin', 'gender', 'enum');
+expect_column_type($conn, 'admin', 'profile_photo', 'mediumblob');
 
 $adminId = (int) $admin['id_admin'];
 $_SESSION['admin'] = $adminId;
