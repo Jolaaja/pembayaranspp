@@ -67,9 +67,12 @@ skema ke database yang sudah berisi data.
 - Akun dapat memilih avatar default netral, perempuan, atau laki-laki, serta
   mengunggah foto profil JPG/PNG/WebP hingga 2 MB. Foto dipotong dan dinormalisasi
   menjadi JPEG, disimpan di database, dan hanya disajikan kepada pengguna login.
-- Dashboard menampilkan tren pemasukan enam bulan terakhir, transaksi terbaru,
-  dan ringkasan tunggakan. Direktori siswa dan alur pembayaran dirancang ulang
-  untuk desktop maupun layar kecil.
+- Dashboard menampilkan tren dan ringkasan pemasukan yang dapat difilter untuk
+  bulan berjalan, semester berjalan, atau enam bulan terakhir. Direktori dan
+  tabel dilengkapi pencarian, pengurutan, serta halaman navigasi; jadwal
+  pembayaran beradaptasi menjadi kartu pada layar kecil.
+- Status pembayaran, notifikasi, dan fokus keyboard menggunakan penanda visual
+  yang konsisten dan mudah dibedakan.
 - Laporan dapat difilter berdasarkan rentang tanggal, menampilkan rekap kelas,
   rekap bulanan, dan tunggakan siswa aktif. Ekspor Excel menggunakan CSV.
 - Admin dapat meninjau aktivitas dan riwayat perubahan role di menu Aktivitas.

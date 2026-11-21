@@ -116,19 +116,145 @@
 
     document.querySelectorAll('.table-responsive table').forEach(function (table, index) {
         var wrap = table.closest('.table-responsive');
-        if (!wrap || wrap.querySelector('.table-search')) return;
+        var body = table.tBodies[0];
+        if (!wrap || !body || wrap.querySelector('.table-search')) return;
+
+        var rows = Array.prototype.filter.call(body.rows, function (row) {
+            return !row.querySelector('td[colspan]');
+        });
+        if (rows.length === 0) return;
+
         var search = document.createElement('input');
         search.type = 'search';
         search.className = 'form-control table-search';
         search.placeholder = 'Cari di tabel...';
         search.setAttribute('aria-label', 'Cari data pada tabel ' + (index + 1));
         wrap.insertBefore(search, table);
-        search.addEventListener('input', function () {
-            var query = search.value.trim().toLocaleLowerCase();
-            table.querySelectorAll('tbody tr').forEach(function (row) {
-                row.hidden = query !== '' && !row.textContent.toLocaleLowerCase().includes(query);
+
+        var sortColumn = -1;
+        var sortDirection = 1;
+        var currentPage = 1;
+        var pageSize = 10;
+        var paginate = table.getAttribute('data-server-pagination') !== 'true';
+        var noResultsRow = document.createElement('tr');
+        noResultsRow.className = 'table-no-results';
+        noResultsRow.hidden = true;
+        var noResultsCell = document.createElement('td');
+        noResultsCell.colSpan = table.tHead ? table.tHead.rows[0].cells.length : 1;
+        noResultsCell.textContent = 'Tidak ada data yang cocok.';
+        noResultsRow.appendChild(noResultsCell);
+        body.appendChild(noResultsRow);
+
+        var pagination = document.createElement('nav');
+        pagination.className = 'table-pagination';
+        pagination.setAttribute('aria-label', 'Navigasi halaman tabel ' + (index + 1));
+        var summary = document.createElement('span');
+        summary.className = 'table-pagination-summary';
+        summary.setAttribute('aria-live', 'polite');
+        var previous = document.createElement('button');
+        previous.type = 'button';
+        previous.className = 'btn btn-secondary btn-sm';
+        previous.textContent = 'Sebelumnya';
+        previous.setAttribute('aria-label', 'Halaman sebelumnya');
+        var next = document.createElement('button');
+        next.type = 'button';
+        next.className = 'btn btn-secondary btn-sm';
+        next.textContent = 'Berikutnya';
+        next.setAttribute('aria-label', 'Halaman berikutnya');
+        pagination.append(previous, summary, next);
+        table.insertAdjacentElement('afterend', pagination);
+        pagination.hidden = !paginate || rows.length <= pageSize;
+
+        var sortableHeaders = [];
+        if (table.tHead && table.tHead.rows.length) {
+            Array.prototype.forEach.call(table.tHead.rows[0].cells, function (header, column) {
+                var label = header.textContent.trim();
+                if (!label || /^(aksi|tindakan)$/i.test(label)) return;
+                var button = document.createElement('button');
+                var indicator = document.createElement('span');
+                button.type = 'button';
+                button.className = 'table-sort';
+                button.textContent = label;
+                button.setAttribute('aria-label', 'Urutkan berdasarkan ' + label);
+                indicator.className = 'table-sort-indicator';
+                indicator.setAttribute('aria-hidden', 'true');
+                indicator.textContent = '↕';
+                button.appendChild(indicator);
+                header.textContent = '';
+                header.appendChild(button);
+                sortableHeaders.push({ header: header, button: button, indicator: indicator });
+                button.addEventListener('click', function () {
+                    if (sortColumn === column) {
+                        sortDirection *= -1;
+                    } else {
+                        sortColumn = column;
+                        sortDirection = 1;
+                    }
+                    currentPage = 1;
+                    sortableHeaders.forEach(function (item, headerIndex) {
+                        var headerLabel = item.button.textContent.replace('↕', '').replace('↑', '').replace('↓', '').trim();
+                        item.header.removeAttribute('aria-sort');
+                        item.indicator.textContent = '↕';
+                        item.button.setAttribute('aria-label', 'Urutkan berdasarkan ' + headerLabel);
+                        if (headerIndex === sortColumn) {
+                            item.header.setAttribute('aria-sort', sortDirection === 1 ? 'ascending' : 'descending');
+                            item.indicator.textContent = sortDirection === 1 ? '↑' : '↓';
+                            item.button.setAttribute('aria-label', 'Urutkan ' + headerLabel + (sortDirection === 1 ? ' menurun' : ' menaik'));
+                        }
+                    });
+                    applyTableState();
+                });
             });
+        }
+
+        function applyTableState() {
+            var query = search.value.trim().toLocaleLowerCase();
+            var filtered = rows.filter(function (row) {
+                return query === '' || row.textContent.toLocaleLowerCase().includes(query);
+            });
+            if (sortColumn >= 0) {
+                var collator = new Intl.Collator('id', { numeric: true, sensitivity: 'base' });
+                filtered.sort(function (leftRow, rightRow) {
+                    var leftCell = leftRow.cells[sortColumn];
+                    var rightCell = rightRow.cells[sortColumn];
+                    var leftValue = leftCell ? leftCell.getAttribute('data-sort-value') || leftCell.textContent.trim() : '';
+                    var rightValue = rightCell ? rightCell.getAttribute('data-sort-value') || rightCell.textContent.trim() : '';
+                    return collator.compare(leftValue, rightValue) * sortDirection;
+                });
+                filtered.forEach(function (row) {
+                    body.appendChild(row);
+                });
+            }
+
+            var totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+            currentPage = Math.min(currentPage, totalPages);
+            var start = filtered.length ? (currentPage - 1) * pageSize : 0;
+            var end = Math.min(start + pageSize, filtered.length);
+            var visibleRows = new Set(filtered.slice(start, end));
+            rows.forEach(function (row) {
+                row.hidden = !visibleRows.has(row);
+            });
+            noResultsRow.hidden = filtered.length !== 0;
+            summary.textContent = filtered.length
+                ? 'Menampilkan ' + (start + 1) + '–' + end + ' dari ' + filtered.length + ' data'
+                : 'Tidak ada data';
+            previous.disabled = currentPage <= 1;
+            next.disabled = currentPage >= totalPages;
+        }
+
+        previous.addEventListener('click', function () {
+            currentPage--;
+            applyTableState();
         });
+        next.addEventListener('click', function () {
+            currentPage++;
+            applyTableState();
+        });
+        search.addEventListener('input', function () {
+            currentPage = 1;
+            applyTableState();
+        });
+        applyTableState();
     });
 
     var profilePhotoInput = document.getElementById('profile-photo');

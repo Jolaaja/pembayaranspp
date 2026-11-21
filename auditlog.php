@@ -29,12 +29,12 @@ include __DIR__ . '/header.php';
     </div>
     <div class="card-body">
         <div class="table-responsive">
-            <table class="table">
+            <table class="table" data-server-pagination="true">
                 <thead><tr><th>Waktu</th><th>Pengguna</th><th>Aktivitas</th><th>Objek</th><th>Catatan</th></tr></thead>
                 <tbody>
                 <?php $hasEntries = false; while ($entry = mysqli_fetch_assoc($entries)): $hasEntries = true; ?>
                     <tr>
-                        <td><?= e(date('d/m/Y H:i', strtotime($entry['created_at']))) ?></td>
+                        <td data-sort-value="<?= e($entry['created_at']) ?>"><?= e(date('d/m/Y H:i', strtotime($entry['created_at']))) ?></td>
                         <td><?= e($entry['nama_admin'] ?: 'Akun dihapus') ?><?= $entry['user_admin'] ? ' · ' . e($entry['user_admin']) : '' ?></td>
                         <td><?= e(str_replace('_', ' ', $entry['event_type'])) ?></td>
                         <td><?= e($entry['entity_type'] ?: '—') ?><?= $entry['entity_id'] ? ' #' . (int) $entry['entity_id'] : '' ?></td>

@@ -3,7 +3,42 @@ require_once __DIR__ . '/app.php';
 require_login();
 include __DIR__ . '/function/function_rupiah.php';
 include __DIR__ . '/koneksi.php';
-include __DIR__ . '/header.php';
+
+$period = $_GET['periode'] ?? 'six_months';
+if (!is_string($period) || !in_array($period, ['month', 'semester', 'six_months'], true)) {
+    http_response_code(400);
+    exit('Periode dashboard tidak valid.');
+}
+
+$today = new DateTimeImmutable('today');
+$currentMonth = new DateTimeImmutable('first day of this month');
+$monthNames = [1 => 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+$semesterNumber = (int) $today->format('n') <= 6 ? 1 : 2;
+$periodLabels = [
+    'month' => 'Bulan ini',
+    'semester' => 'Semester ' . $semesterNumber,
+    'six_months' => '6 bulan terakhir',
+];
+$periodStart = match ($period) {
+    'month' => $currentMonth,
+    'semester' => new DateTimeImmutable($today->format('Y') . '-' . ($semesterNumber === 1 ? '01' : '07') . '-01'),
+    default => $currentMonth->modify('-5 months'),
+};
+$periodEnd = $today;
+$dateFrom = $periodStart->format('Y-m-d');
+$dateTo = $periodEnd->format('Y-m-d');
+$periodLabel = $periodLabels[$period];
+
+$periodSummaryStmt = db_execute(
+    $conn,
+    "SELECT COUNT(*) AS transactions, COALESCE(SUM(jumlah), 0) AS income
+     FROM pembayaran WHERE ket = 'LUNAS' AND tglbayar BETWEEN ? AND ?",
+    'ss',
+    [$dateFrom, $dateTo]
+);
+$periodSummaryResult = mysqli_stmt_get_result($periodSummaryStmt);
+$periodSummary = mysqli_fetch_assoc($periodSummaryResult);
+mysqli_stmt_close($periodSummaryStmt);
 
 $totalRow = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS total, COALESCE(SUM(jumlah), 0) AS income FROM pembayaran WHERE ket = 'LUNAS'"));
 $todayRow = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COALESCE(SUM(jumlah), 0) AS income FROM pembayaran WHERE tglbayar = CURDATE() AND ket = 'LUNAS'"));
@@ -20,30 +55,49 @@ $recent = mysqli_query(
      JOIN kelas k ON k.id_kelas = s.id_kelas
      WHERE p.ket = 'LUNAS' ORDER BY p.tglbayar DESC, p.idspp DESC LIMIT 5"
 );
-$monthly = mysqli_query(
+$groupExpression = $period === 'month' ? "DATE_FORMAT(tglbayar, '%Y-%m-%d')" : "DATE_FORMAT(tglbayar, '%Y-%m')";
+$groupedIncomeStmt = db_execute(
     $conn,
-    "SELECT DATE_FORMAT(tglbayar, '%Y-%m') AS month_key, COALESCE(SUM(jumlah), 0) AS income
-     FROM pembayaran WHERE ket = 'LUNAS' AND tglbayar >= DATE_SUB(DATE_FORMAT(CURDATE(), '%Y-%m-01'), INTERVAL 5 MONTH)
-     GROUP BY DATE_FORMAT(tglbayar, '%Y-%m')"
+    "SELECT {$groupExpression} AS period_key, COALESCE(SUM(jumlah), 0) AS income
+     FROM pembayaran WHERE ket = 'LUNAS' AND tglbayar BETWEEN ? AND ?
+     GROUP BY period_key ORDER BY period_key",
+    'ss',
+    [$dateFrom, $dateTo]
 );
-$incomeByMonth = [];
-while ($row = mysqli_fetch_assoc($monthly)) {
-    $incomeByMonth[$row['month_key']] = (float) $row['income'];
+$groupedIncomeResult = mysqli_stmt_get_result($groupedIncomeStmt);
+mysqli_stmt_close($groupedIncomeStmt);
+$incomeByPeriod = [];
+if ($groupedIncomeResult) {
+    while ($row = mysqli_fetch_assoc($groupedIncomeResult)) {
+        $incomeByPeriod[$row['period_key']] = (float) $row['income'];
+    }
 }
-$monthNames = [1 => 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-$monthPoints = [];
-$monthCursor = new DateTimeImmutable('first day of this month');
-for ($offset = 5; $offset >= 0; $offset--) {
-    $monthDate = $monthCursor->modify('-' . $offset . ' months');
-    $key = $monthDate->format('Y-m');
-    $monthPoints[] = [
-        'key' => $key,
-        'label' => $monthNames[(int) $monthDate->format('n')],
-        'year' => $monthDate->format('Y'),
-        'income' => $incomeByMonth[$key] ?? 0,
+$periodPoints = [];
+for ($cursor = $periodStart; $cursor <= $periodEnd; $cursor = $cursor->modify('+1 month')) {
+    if ($period === 'month') {
+        $daysToShow = (int) $periodEnd->format('j');
+        for ($day = 1; $day <= $daysToShow; $day++) {
+            $date = $cursor->setDate((int) $cursor->format('Y'), (int) $cursor->format('n'), $day);
+            $key = $date->format('Y-m-d');
+            $periodPoints[] = [
+                'label' => (string) $day,
+                'title' => $date->format('d/m/Y'),
+                'income' => $incomeByPeriod[$key] ?? 0,
+            ];
+        }
+        break;
+    }
+
+    $key = $cursor->format('Y-m');
+    $periodPoints[] = [
+        'label' => $monthNames[(int) $cursor->format('n')],
+        'title' => $monthNames[(int) $cursor->format('n')] . ' ' . $cursor->format('Y'),
+        'income' => $incomeByPeriod[$key] ?? 0,
     ];
 }
-$maxIncome = max(array_column($monthPoints, 'income'));
+$maxIncome = max(array_column($periodPoints, 'income'));
+$periodRangeLabel = $periodStart->format('d/m/Y') . ' – ' . $periodEnd->format('d/m/Y');
+include __DIR__ . '/header.php';
 ?>
 <section class="dashboard-welcome">
     <div>
@@ -60,18 +114,18 @@ $maxIncome = max(array_column($monthPoints, 'income'));
 <div class="dashboard-stats">
     <article class="card stat-card">
         <div class="card-body">
-            <div class="stat-top"><span class="stat-icon stat-icon-mint"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17 10 11l4 4 6-8"/><path d="M15 7h5v5"/></svg></span><span class="stat-tag">SEPANJANG WAKTU</span></div>
+            <div class="stat-top"><span class="stat-icon stat-icon-mint"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17 10 11l4 4 6-8"/><path d="M15 7h5v5"/></svg></span><span class="stat-tag"><?= e(strtoupper($periodLabel)) ?></span></div>
             <div class="stat-label">Transaksi lunas</div>
-            <div class="stat-value"><?= number_format((int) $totalRow['total'], 0, ',', '.') ?><span class="stat-unit">transaksi</span></div>
-            <div class="stat-foot">Pembayaran berhasil dikonfirmasi</div>
+            <div class="stat-value"><?= number_format((int) $periodSummary['transactions'], 0, ',', '.') ?><span class="stat-unit">transaksi</span></div>
+            <div class="stat-foot">Sepanjang waktu: <?= number_format((int) $totalRow['total'], 0, ',', '.') ?> transaksi</div>
         </div>
     </article>
     <article class="card stat-card">
         <div class="card-body">
-            <div class="stat-top"><span class="stat-icon stat-icon-gold">Rp</span><span class="stat-tag">AKUMULASI</span></div>
-            <div class="stat-label">Total pemasukan</div>
-            <div class="stat-value"><?= format_rupiah((float) $totalRow['income']) ?></div>
-            <div class="stat-foot">Akumulasi dari pembayaran lunas</div>
+            <div class="stat-top"><span class="stat-icon stat-icon-gold">Rp</span><span class="stat-tag"><?= e(strtoupper($periodLabel)) ?></span></div>
+            <div class="stat-label">Pemasukan periode</div>
+            <div class="stat-value"><?= format_rupiah((float) $periodSummary['income']) ?></div>
+            <div class="stat-foot">Sepanjang waktu: <?= format_rupiah((float) $totalRow['income']) ?></div>
         </div>
     </article>
     <article class="card stat-card">
@@ -95,20 +149,31 @@ $maxIncome = max(array_column($monthPoints, 'income'));
 <section class="dashboard-panels">
     <article class="card dashboard-chart-card">
         <div class="card-header card-header-actions">
-            <div><h6>Tren pemasukan</h6><small>Enam bulan terakhir</small></div>
-            <a class="btn btn-secondary btn-sm" href="laporan.php">Lihat laporan</a>
+            <div><h6>Tren pemasukan</h6><small><?= e($periodLabel) ?> · <?= e($periodRangeLabel) ?></small></div>
+            <div class="dashboard-chart-actions">
+                <form method="get" class="dashboard-period-form">
+                    <label class="sr-only" for="dashboard-period">Periode dashboard</label>
+                    <select class="form-control" id="dashboard-period" name="periode">
+                        <option value="six_months" <?= $period === 'six_months' ? 'selected' : '' ?>>6 bulan terakhir</option>
+                        <option value="month" <?= $period === 'month' ? 'selected' : '' ?>>Bulan ini</option>
+                        <option value="semester" <?= $period === 'semester' ? 'selected' : '' ?>>Semester berjalan</option>
+                    </select>
+                    <button class="btn btn-primary btn-sm" type="submit">Terapkan</button>
+                </form>
+                <a class="btn btn-secondary btn-sm" href="laporan.php">Lihat laporan</a>
+            </div>
         </div>
         <div class="card-body">
-            <div class="income-chart" role="img" aria-label="Grafik pemasukan enam bulan terakhir">
-                <?php foreach ($monthPoints as $point): ?>
+            <div class="income-chart <?= $period === 'month' ? 'income-chart-daily' : '' ?>" role="img" aria-label="Grafik pemasukan: <?= e($periodLabel) ?>, <?= e($periodRangeLabel) ?>">
+                <?php foreach ($periodPoints as $point): ?>
                     <?php $barHeight = $maxIncome > 0 ? max(5, (int) round($point['income'] / $maxIncome * 100)) : 4; ?>
-                    <div class="income-chart-column" title="<?= e($point['label'] . ' ' . $point['year'] . ': ' . format_rupiah($point['income'])) ?>">
+                    <div class="income-chart-column" title="<?= e($point['title'] . ': ' . format_rupiah($point['income'])) ?>">
                         <div class="income-chart-value"><?= $point['income'] > 0 ? e(format_rupiah($point['income'])) : '' ?></div>
                         <div class="income-chart-track"><span class="income-chart-bar <?= $point['income'] > 0 ? 'has-value' : '' ?>" style="height: <?= $barHeight ?>%"></span></div>
                         <div class="income-chart-label"><?= e($point['label']) ?></div>
                     </div>
                 <?php endforeach; ?>
-                <?php if ($maxIncome <= 0): ?><p class="chart-empty-note">Grafik akan terisi setelah pembayaran pertama dicatat.</p><?php endif; ?>
+                <?php if ($maxIncome <= 0): ?><p class="chart-empty-note">Grafik akan terisi setelah pembayaran pertama pada periode ini dicatat.</p><?php endif; ?>
             </div>
         </div>
     </article>

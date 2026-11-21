@@ -98,11 +98,11 @@ include __DIR__ . '/header.php';
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table payment-schedule-table">
+                <table class="table payment-schedule-table" aria-label="Jadwal pembayaran SPP">
                     <thead><tr><th>Bulan</th><th>Jatuh tempo</th><th>No. bayar</th><th>Tanggal bayar</th><th>Nominal</th><th>Status</th><th>Aksi</th></tr></thead>
                     <tbody>
                     <?php if (!$payments): ?>
-                        <tr><td colspan="7" class="empty-state">Belum ada jadwal pembayaran untuk siswa ini.</td></tr>
+                        <tr class="payment-empty-row"><td colspan="7" class="empty-state">Belum ada jadwal pembayaran untuk siswa ini.</td></tr>
                     <?php else: ?>
                         <?php foreach ($payments as $payment): ?>
                             <?php
@@ -112,13 +112,13 @@ include __DIR__ . '/header.php';
                             $statusClass = $isPaid ? 'status-paid' : ($isOverdue ? 'status-overdue' : 'status-pending');
                             ?>
                             <tr>
-                                <td><strong class="payment-month"><?= e($payment['bulan']) ?></strong></td>
-                                <td><?= e(date('d/m/Y', strtotime($payment['jatuhtempo']))) ?></td>
-                                <td><?= e($payment['nobayar'] ?: '—') ?></td>
-                                <td><?= $payment['tglbayar'] ? e(date('d/m/Y', strtotime($payment['tglbayar']))) : '—' ?></td>
-                                <td><strong><?= format_rupiah((float) $payment['jumlah']) ?></strong></td>
-                                <td><span class="status-chip <?= $statusClass ?>"><span></span><?= $statusLabel ?></span></td>
-                                <td>
+                                <td data-label="Bulan"><strong class="payment-month"><?= e($payment['bulan']) ?></strong></td>
+                                <td data-label="Jatuh tempo" data-sort-value="<?= e($payment['jatuhtempo']) ?>"><?= e(date('d/m/Y', strtotime($payment['jatuhtempo']))) ?></td>
+                                <td data-label="No. bayar"><?= e($payment['nobayar'] ?: '—') ?></td>
+                                <td data-label="Tanggal bayar" data-sort-value="<?= e($payment['tglbayar'] ?: '') ?>"><?= $payment['tglbayar'] ? e(date('d/m/Y', strtotime($payment['tglbayar']))) : '—' ?></td>
+                                <td data-label="Nominal" data-sort-value="<?= e((string) $payment['jumlah']) ?>"><strong><?= format_rupiah((float) $payment['jumlah']) ?></strong></td>
+                                <td data-label="Status"><span class="status-chip <?= $statusClass ?>"><span></span><?= $statusLabel ?></span></td>
+                                <td data-label="Aksi">
                                     <div class="payment-row-actions">
                                         <?php if ($isPaid): ?>
                                             <form method="post" action="proses_transaksi.php" onsubmit="return confirm('Batalkan pembayaran <?= e($payment['bulan']) ?>? Riwayat transaksi tetap disimpan.')">

@@ -233,7 +233,10 @@ function show_flash(): void
     if (!empty($_SESSION['flash'])) {
         $flash = $_SESSION['flash'];
         unset($_SESSION['flash']);
-        echo '<div class="alert alert-' . e($flash['type']) . ' alert-dismissible fade show spp-alert" role="alert">'
+        $isUrgent = in_array($flash['type'], ['danger', 'warning'], true);
+        $role = $isUrgent ? 'alert' : 'status';
+        $live = $isUrgent ? 'assertive' : 'polite';
+        echo '<div class="alert alert-' . e($flash['type']) . ' alert-dismissible fade show spp-alert" role="' . $role . '" aria-live="' . $live . '" aria-atomic="true">'
             . e($flash['message'])
             . '<button type="button" class="close" data-dismiss="alert" aria-label="Tutup"><span aria-hidden="true">&times;</span></button></div>';
     }
