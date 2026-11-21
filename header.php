@@ -12,11 +12,14 @@ $pageInfo = [
     'editdatajurusan.php' => ['Kelola jurusan', 'Atur program dan jurusan sekolah.'],
     'editdataangkatan.php' => ['Kelola angkatan', 'Atur tahun angkatan dan nominal SPP.'],
     'laporan.php' => ['Laporan', 'Pilih periode dan cetak rekap pembayaran.'],
-    'adminedit.php' => ['Pengaturan akun', 'Perbarui informasi akun administrator.'],
+    'adminedit.php' => ['Pengaturan akun', 'Perbarui informasi dan password akun Anda.'],
+    'adminusers.php' => ['Pengguna', 'Kelola akun administrator dan kasir.'],
+    'auditlog.php' => ['Aktivitas', 'Tinjau perubahan dan transaksi yang tercatat.'],
 ];
 [$pageTitle, $pageDescription] = $pageInfo[$currentPage] ?? ['Aplikasi SPP', 'Pengelolaan pembayaran sekolah.'];
 $adminName = (string) ($_SESSION['nama_admin'] ?? 'Administrator');
 $adminInitial = strtoupper(substr($adminName, 0, 1));
+$isAdmin = (string) ($_SESSION['role'] ?? '') === 'admin';
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -41,11 +44,15 @@ $adminInitial = strtoupper(substr($adminName, 0, 1));
             <a class="side-link <?= $currentPage === 'index.php' ? 'is-active' : '' ?>" href="index.php"><span class="side-icon">⌂</span><span>Ringkasan</span></a>
             <a class="side-link <?= $currentPage === 'pembayaran.php' ? 'is-active' : '' ?>" href="pembayaran.php"><span class="side-icon">↗</span><span>Pembayaran</span></a>
             <a class="side-link <?= $currentPage === 'datasiswa.php' ? 'is-active' : '' ?>" href="datasiswa.php"><span class="side-icon">♙</span><span>Data siswa</span></a>
-            <div class="sidebar-caption sidebar-caption-spaced">DATA SEKOLAH</div>
-            <a class="side-link <?= $currentPage === 'editdatasiswa.php' ? 'is-active' : '' ?>" href="editdatasiswa.php"><span class="side-icon">＋</span><span>Kelola siswa</span></a>
-            <a class="side-link <?= $currentPage === 'editdatakelas.php' ? 'is-active' : '' ?>" href="editdatakelas.php"><span class="side-icon">▦</span><span>Kelas</span></a>
-            <a class="side-link <?= $currentPage === 'editdatajurusan.php' ? 'is-active' : '' ?>" href="editdatajurusan.php"><span class="side-icon">◇</span><span>Jurusan</span></a>
-            <a class="side-link <?= $currentPage === 'editdataangkatan.php' ? 'is-active' : '' ?>" href="editdataangkatan.php"><span class="side-icon">◷</span><span>Angkatan &amp; biaya</span></a>
+            <?php if ($isAdmin): ?>
+                <div class="sidebar-caption sidebar-caption-spaced">DATA SEKOLAH</div>
+                <a class="side-link <?= $currentPage === 'editdatasiswa.php' ? 'is-active' : '' ?>" href="editdatasiswa.php"><span class="side-icon">＋</span><span>Kelola siswa</span></a>
+                <a class="side-link <?= $currentPage === 'editdatakelas.php' ? 'is-active' : '' ?>" href="editdatakelas.php"><span class="side-icon">▦</span><span>Kelas</span></a>
+                <a class="side-link <?= $currentPage === 'editdatajurusan.php' ? 'is-active' : '' ?>" href="editdatajurusan.php"><span class="side-icon">◇</span><span>Jurusan</span></a>
+                <a class="side-link <?= $currentPage === 'editdataangkatan.php' ? 'is-active' : '' ?>" href="editdataangkatan.php"><span class="side-icon">◷</span><span>Angkatan &amp; biaya</span></a>
+                <a class="side-link <?= $currentPage === 'adminusers.php' ? 'is-active' : '' ?>" href="adminusers.php"><span class="side-icon">♙</span><span>Pengguna</span></a>
+                <a class="side-link <?= $currentPage === 'auditlog.php' ? 'is-active' : '' ?>" href="auditlog.php"><span class="side-icon">▤</span><span>Aktivitas</span></a>
+            <?php endif; ?>
             <div class="sidebar-caption sidebar-caption-spaced">LAINNYA</div>
             <a class="side-link <?= $currentPage === 'laporan.php' ? 'is-active' : '' ?>" href="laporan.php"><span class="side-icon">▤</span><span>Laporan</span></a>
         </nav>
@@ -58,9 +65,9 @@ $adminInitial = strtoupper(substr($adminName, 0, 1));
     <div class="app-main">
         <header class="app-topbar">
             <button type="button" class="icon-button mobile-menu" data-sidebar-toggle aria-label="Buka navigasi"><span>☰</span></button>
-            <div class="topbar-context"><span class="eyebrow">PORTAL ADMINISTRATOR</span><span class="topbar-date"><?= date('d/m/Y') ?></span></div>
+            <div class="topbar-context"><span class="eyebrow">PORTAL KEUANGAN SEKOLAH</span><span class="topbar-date"><?= date('d/m/Y') ?></span></div>
             <div class="topbar-account">
-                <a class="account-copy" href="adminedit.php"><strong><?= e($adminName) ?></strong><small>Pengaturan akun</small></a>
+                <a class="account-copy" href="adminedit.php"><strong><?= e($adminName) ?></strong><small><?= $isAdmin ? 'Administrator · Pengaturan akun' : 'Kasir · Pengaturan akun' ?></small></a>
                 <a class="account-avatar" href="adminedit.php" aria-label="Pengaturan akun"><?= e($adminInitial) ?></a>
                 <form action="logout.php" method="post">
                     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">

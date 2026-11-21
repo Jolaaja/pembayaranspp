@@ -3,9 +3,11 @@ require_once __DIR__ . '/app.php';
 require_login();
 include __DIR__ . '/koneksi.php';
 
-$awal = filter_input(INPUT_GET, 'awal', FILTER_UNSAFE_RAW);
-$akhir = filter_input(INPUT_GET, 'akhir', FILTER_UNSAFE_RAW);
-if (!$awal || !$akhir || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $awal) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $akhir) || $awal > $akhir) {
+$rawStart = $_GET['awal'] ?? '';
+$rawEnd = $_GET['akhir'] ?? '';
+$awal = is_string($rawStart) ? trim($rawStart) : '';
+$akhir = is_string($rawEnd) ? trim($rawEnd) : '';
+if (!is_valid_iso_date($awal) || !is_valid_iso_date($akhir) || $awal > $akhir) {
     http_response_code(400);
     exit('Rentang tanggal laporan tidak valid.');
 }

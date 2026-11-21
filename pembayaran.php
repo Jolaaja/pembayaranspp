@@ -20,11 +20,11 @@ include 'header.php';
 <?php 
 if (isset($_GET['nisn']) && $_GET['nisn'] != ''){
         $nisn = trim((string) $_GET['nisn']);
-        $stmt = mysqli_prepare($conn, 'SELECT siswa.*, angkatan.*, jurusan.*, kelas.* FROM siswa
+        $stmt = mysqli_prepare($conn, "SELECT siswa.*, angkatan.*, jurusan.*, kelas.* FROM siswa
             JOIN angkatan ON siswa.id_angkatan = angkatan.id_angkatan
             JOIN jurusan ON siswa.id_jurusan = jurusan.id_jurusan
             JOIN kelas ON siswa.id_kelas = kelas.id_kelas
-            WHERE siswa.nisn = ?');
+            WHERE siswa.nisn = ? AND siswa.status = 'aktif'");
         mysqli_stmt_bind_param($stmt, 's', $nisn);
         mysqli_stmt_execute($stmt);
         $exec = mysqli_stmt_get_result($stmt);
@@ -111,7 +111,7 @@ if (isset($_GET['nisn']) && $_GET['nisn'] != ''){
                                             <td><?= e($res['ket']) ?></td>
                                             <td>
                                                 <?php
-                                            if ($res['nobayar'] == ''){
+                                            if ($res['ket'] !== 'LUNAS'){
                                                         echo '<form method="post" action="proses_transaksi.php" class="d-inline">'
                                                             . '<input type="hidden" name="csrf_token" value="' . e(csrf_token()) . '">'
                                                             . '<input type="hidden" name="act" value="bayar">'
@@ -128,6 +128,7 @@ if (isset($_GET['nisn']) && $_GET['nisn'] != ''){
                                                         echo '<a class="btn btn-success btn-sm" href="cetak_slip_pembayaran.php?idspp=' . (int) $res['idspp'] . '" target="_blank">Cetak</a>';
                                                 
                                             }
+                                            echo ' <a class="btn btn-secondary btn-sm" href="riwayat_pembayaran.php?idspp=' . (int) $res['idspp'] . '">Riwayat</a>';
                                                  ?>
                                             </td>
                                         </tr>

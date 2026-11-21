@@ -6,6 +6,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !csrf_validate()) {
     exit('Permintaan logout tidak valid.');
 }
 
+if (isset($_SESSION['admin'])) {
+    include __DIR__ . '/koneksi.php';
+    audit_event($conn, 'logout', 'admin', (int) $_SESSION['admin'], 'Administrator keluar dari sistem.');
+}
+
 $_SESSION = [];
 if (ini_get('session.use_cookies')) {
     $params = session_get_cookie_params();

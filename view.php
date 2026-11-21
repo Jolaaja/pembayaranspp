@@ -1,10 +1,10 @@
 <?php
 require_once __DIR__ . '/app.php';
-require_login();
 include __DIR__ . '/koneksi.php';
+require_role(['admin']);
 
 $entities = [
-    'id_siswa' => ['SELECT * FROM siswa WHERE id_siswa = ?', 'editdatasiswa.php'],
+    'id_siswa' => ["SELECT * FROM siswa WHERE id_siswa = ? AND status = 'aktif'", 'editdatasiswa.php'],
     'id_kelas' => ['SELECT * FROM kelas WHERE id_kelas = ?', 'editdatakelas.php'],
     'id_jurusan' => ['SELECT * FROM jurusan WHERE id_jurusan = ?', 'editdatajurusan.php'],
     'id_angkatan' => ['SELECT * FROM angkatan WHERE id_angkatan = ?', 'editdataangkatan.php'],

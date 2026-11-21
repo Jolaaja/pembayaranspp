@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/app.php';
-require_login();
 include __DIR__ . '/koneksi.php';
+require_role(['admin']);
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
     if (csrf_validate()) {
         $id = filter_var($_POST['id_kelas'] ?? null, FILTER_VALIDATE_INT);
@@ -11,6 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
                 flash('Kelas masih digunakan oleh data siswa.', 'danger');
             } else {
                 db_execute($conn, 'DELETE FROM kelas WHERE id_kelas = ?', 'i', [$id]);
+                audit_event($conn, 'class_deleted', 'kelas', $id, 'Data kelas dihapus.');
                 flash('Data kelas berhasil dihapus.');
             }
         } else {
@@ -32,9 +33,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['simpan']) || isset($
             flash('Nama kelas wajib diisi.', 'danger');
         } elseif (isset($_POST['edit'])) {
             db_execute($conn, 'UPDATE kelas SET nama_kelas = ? WHERE id_kelas = ?', 'si', [$name, $id]);
+            audit_event($conn, 'class_updated', 'kelas', $id, 'Data kelas diperbarui.');
             flash('Data kelas berhasil diperbarui.');
         } else {
             db_execute($conn, 'INSERT INTO kelas (nama_kelas) VALUES (?)', 's', [$name]);
+            audit_event($conn, 'class_created', 'kelas', mysqli_insert_id($conn), 'Data kelas dibuat.');
             flash('Data kelas berhasil ditambahkan.');
         }
     }

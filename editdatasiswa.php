@@ -1,22 +1,17 @@
 <?php
 require_once __DIR__ . '/app.php';
-require_login();
 include __DIR__ . '/koneksi.php';
+require_role(['admin']);
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
     if (csrf_validate()) {
         $id = filter_var($_POST['id_siswa'] ?? null, FILTER_VALIDATE_INT);
         if ($id) {
-            mysqli_begin_transaction($conn);
-            try {
-                db_execute($conn, 'DELETE FROM pembayaran WHERE id_siswa = ?', 'i', [$id]);
-                db_execute($conn, 'DELETE FROM siswa WHERE id_siswa = ?', 'i', [$id]);
-                mysqli_commit($conn);
-                flash('Data siswa dan jadwal pembayarannya berhasil dihapus.');
-            } catch (mysqli_sql_exception $error) {
-                mysqli_rollback($conn);
-                error_log('Student deletion failed: ' . $error->getMessage());
-                flash('Data siswa gagal dihapus.', 'danger');
+            $archive = db_execute($conn, "UPDATE siswa SET status = 'nonaktif' WHERE id_siswa = ? AND status = 'aktif'", 'i', [$id]);
+            $archived = mysqli_stmt_affected_rows($archive) === 1;
+            if ($archived) {
+                audit_event($conn, 'student_archived', 'siswa', $id, 'Siswa diarsipkan; riwayat pembayaran dipertahankan.');
             }
+            flash($archived ? 'Siswa diarsipkan. Riwayat dan jadwal pembayaran tetap tersimpan.' : 'Siswa tidak ditemukan atau sudah diarsipkan.', $archived ? 'success' : 'warning');
         } else {
             flash('ID siswa tidak valid.', 'danger');
         }
@@ -75,6 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['simpan']) || isset($
                 $monthLabel = $months[(int) $monthDate->format('n') - 1] . ' ' . $monthDate->format('Y');
                 db_execute($conn, 'INSERT INTO pembayaran (id_siswa, jatuhtempo, bulan, jumlah) VALUES (?, ?, ?, ?)', 'isss', [$studentId, $dueDate, $monthLabel, (string) $cohort['biaya']]);
             }
+            audit_event($conn, 'student_created', 'siswa', $studentId, 'Siswa dan jadwal SPP 36 bulan dibuat.');
             mysqli_commit($conn);
             flash('Data siswa dan 36 jadwal SPP berhasil dibuat.');
         } catch (mysqli_sql_exception | RuntimeException $error) {
@@ -88,7 +84,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['simpan']) || isset($
             flash('ID siswa tidak valid.', 'danger');
         } else {
             $update = db_execute($conn, 'UPDATE siswa SET nama = ?, id_jurusan = ?, id_angkatan = ?, id_kelas = ?, alamat = ? WHERE id_siswa = ?', 'siiisi', [$name, $majorId, $cohortId, $classId, $address, $studentId]);
-            flash(mysqli_stmt_affected_rows($update) >= 0 ? 'Data siswa berhasil diperbarui.' : 'Data siswa gagal diperbarui.', mysqli_stmt_affected_rows($update) >= 0 ? 'success' : 'danger');
+            audit_event($conn, 'student_updated', 'siswa', $studentId, 'Data siswa diperbarui.');
+            flash('Data siswa berhasil diperbarui.');
         }
     }
     header('Location: editdatasiswa.php');
@@ -121,7 +118,7 @@ include __DIR__ . '/header.php';
                                     </thead>
                                      <tbody>
                                     <?php 
-                                    $query = "SELECT siswa.*,angkatan.*,jurusan.*,kelas.* FROM siswa,angkatan,jurusan,kelas WHERE siswa.id_angkatan = angkatan.id_angkatan AND siswa.id_jurusan = jurusan.id_jurusan AND  siswa.id_kelas = kelas.id_kelas ORDER BY id_siswa";
+                                    $query = "SELECT siswa.*,angkatan.*,jurusan.*,kelas.* FROM siswa,angkatan,jurusan,kelas WHERE siswa.id_angkatan = angkatan.id_angkatan AND siswa.id_jurusan = jurusan.id_jurusan AND siswa.id_kelas = kelas.id_kelas AND siswa.status = 'aktif' ORDER BY id_siswa";
                                     $exec = mysqli_query($conn,$query);
                                     while($res = mysqli_fetch_assoc($exec)) :
 
@@ -135,7 +132,7 @@ include __DIR__ . '/header.php';
                                             <td><?= e($res['nama_jurusan']) ?></td>
                                             <td><?= e($res['alamat']) ?></td>
                                             <td>
-                                                <form method="post" class="d-inline" onsubmit="return confirm('Hapus siswa beserta jadwal SPP-nya?')"><input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>"><input type="hidden" name="id_siswa" value="<?= (int) $res['id_siswa'] ?>"><button type="submit" name="delete" class="btn btn-sm btn-danger">Hapus</button></form>
+                                                <form method="post" class="d-inline" onsubmit="return confirm('Arsipkan siswa ini? Riwayat pembayarannya tetap disimpan.')"><input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>"><input type="hidden" name="id_siswa" value="<?= (int) $res['id_siswa'] ?>"><button type="submit" name="delete" class="btn btn-sm btn-danger">Arsipkan</button></form>
                                                 <a href="#" class="view_data btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#myModal" id="<?= (int) $res['id_siswa'] ?>">Edit</a>
                                             </td>
                                         </tr>

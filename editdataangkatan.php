@@ -1,8 +1,8 @@
 <?php
 include __DIR__ . '/function/function_rupiah.php';
 require_once __DIR__ . '/app.php';
-require_login();
 include __DIR__ . '/koneksi.php';
+require_role(['admin']);
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
     if (csrf_validate()) {
         $id = filter_var($_POST['id_angkatan'] ?? null, FILTER_VALIDATE_INT);
@@ -12,6 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
                 flash('Angkatan masih digunakan oleh data siswa.', 'danger');
             } else {
                 db_execute($conn, 'DELETE FROM angkatan WHERE id_angkatan = ?', 'i', [$id]);
+                audit_event($conn, 'cohort_deleted', 'angkatan', $id, 'Data angkatan dihapus.');
                 flash('Data angkatan berhasil dihapus.');
             }
         } else {
@@ -34,9 +35,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['simpan']) || isset($
             flash('Lengkapi nama angkatan dan biaya dengan benar.', 'danger');
         } elseif (isset($_POST['edit'])) {
             db_execute($conn, 'UPDATE angkatan SET nama_angkatan = ?, biaya = ? WHERE id_angkatan = ?', 'ssi', [$name, (string) $fee, $id]);
+            audit_event($conn, 'cohort_updated', 'angkatan', $id, 'Data angkatan diperbarui.');
             flash('Angkatan berhasil diperbarui.');
         } else {
             db_execute($conn, 'INSERT INTO angkatan (nama_angkatan, biaya) VALUES (?, ?)', 'ss', [$name, (string) $fee]);
+            audit_event($conn, 'cohort_created', 'angkatan', mysqli_insert_id($conn), 'Data angkatan dibuat.');
             flash('Angkatan berhasil ditambahkan.');
         }
     }

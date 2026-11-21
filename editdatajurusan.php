@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/app.php';
-require_login();
 include __DIR__ . '/koneksi.php';
+require_role(['admin']);
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
     if (csrf_validate()) {
         $id = filter_var($_POST['id_jurusan'] ?? null, FILTER_VALIDATE_INT);
@@ -11,6 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
                 flash('Jurusan masih digunakan oleh data siswa.', 'danger');
             } else {
                 db_execute($conn, 'DELETE FROM jurusan WHERE id_jurusan = ?', 'i', [$id]);
+                audit_event($conn, 'major_deleted', 'jurusan', $id, 'Data jurusan dihapus.');
                 flash('Data jurusan berhasil dihapus.');
             }
         } else {
@@ -32,9 +33,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['simpan']) || isset($
             flash('Nama jurusan wajib diisi.', 'danger');
         } elseif (isset($_POST['edit'])) {
             db_execute($conn, 'UPDATE jurusan SET nama_jurusan = ? WHERE id_jurusan = ?', 'si', [$name, $id]);
+            audit_event($conn, 'major_updated', 'jurusan', $id, 'Data jurusan diperbarui.');
             flash('Data jurusan berhasil diperbarui.');
         } else {
             db_execute($conn, 'INSERT INTO jurusan (nama_jurusan) VALUES (?)', 's', [$name]);
+            audit_event($conn, 'major_created', 'jurusan', mysqli_insert_id($conn), 'Data jurusan dibuat.');
             flash('Data jurusan berhasil ditambahkan.');
         }
     }

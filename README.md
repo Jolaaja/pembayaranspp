@@ -1,61 +1,92 @@
 # Aplikasi Pembayaran SPP Sekolah
 
-Aplikasi pembayaran SPP berbasis PHP dan MySQL untuk mengelola data siswa,
-kelas, jurusan, angkatan, transaksi pembayaran, dan laporan.
-
-Antarmuka administrator telah diperbarui dengan layout responsif dan aset
-CSS/JavaScript lokal. Bootstrap lama tetap digunakan hanya sebagai dasar grid;
-menu, pencarian tabel, dan modal tidak memerlukan direktori `vendor`.
+Aplikasi PHP dan MySQL untuk mengelola siswa, data sekolah, pembayaran SPP,
+riwayat transaksi, laporan operasional, dan akun petugas. Antarmuka responsif
+menggunakan aset lokal; menu, modal, dan pencarian tabel tidak memerlukan
+direktori `vendor`.
 
 ## Persyaratan
 
 - PHP 8.0 atau lebih baru
-- MySQL/MariaDB
+- MySQL 8 atau MariaDB yang mendukung InnoDB dan foreign key
 - Ekstensi PHP `mysqli`
+- Klien `mysql` dan `mysqldump` untuk backup/restore
 
-## Instalasi
+## Instalasi dan migrasi
 
-1. Pindahkan folder proyek ke document root web server.
-2. Pastikan MySQL/MariaDB Laragon aktif.
-3. Jalankan migrasi dari PowerShell di folder proyek:
+1. Letakkan proyek di document root dan pastikan MySQL/MariaDB aktif.
+2. Atur kredensial database. Nilai bawaan aplikasi: `localhost`, port `3308`,
+   database `webspp`, user `root`, tanpa password.
+3. Jalankan migrasi melalui PowerShell dari folder proyek:
+
+   ```powershell
+   php database\migrate.php
+   ```
+
+   Migrasi mencatat versi yang sudah diterapkan dan aman dijalankan kembali.
+   Migrasi `003_financial_integrity.sql` mengubah nominal menjadi `DECIMAL`,
+   tanggal menjadi `DATE`, menambah role, arsip siswa, foreign key, audit log,
+   dan riwayat pembayaran. Pemeriksaan awal menghentikan migrasi jika menemukan
+   data lama yang invalid atau duplikat; perbaiki data atau pulihkan backup
+   terlebih dahulu. Migrasi tidak menghapus data lama.
+
+   Konfigurasi koneksi dapat diberikan melalui environment variable
+   `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, dan `DB_PASS`.
+   Jika database belum memiliki akun admin, migrator meminta informasi admin
+   pertama di terminal. Input password pada prompt terminal terlihat, jadi
+   jalankan dari terminal privat.
+
+4. Buka aplikasi melalui Laragon atau web server lokal.
+
+`webspp.sql` dan `database/webspp.sql` adalah skema dasar lama untuk instalasi
+baru. Setelah mengimpor salah satunya, tetap jalankan migrasi CLI. Jangan impor
+skema ke database yang sudah berisi data.
+
+## Fitur operasional
+
+- Admin dapat mengelola data sekolah, pengguna, role, dan profil. Kasir dapat
+  memproses pembayaran serta membuka laporan.
+- Pembayaran diproses dengan transaksi database dan penguncian baris. Pembatalan
+  menyimpan peristiwa reversal, bukan menghapus riwayat.
+- Setiap siswa baru mendapat 36 jadwal SPP dengan jatuh tempo tanggal 10 mulai
+  bulan berjalan. Penghapusan siswa mengarsipkannya agar histori tetap tersedia.
+- Laporan dapat difilter berdasarkan rentang tanggal, menampilkan rekap kelas,
+  rekap bulanan, dan tunggakan siswa aktif. Ekspor Excel menggunakan CSV.
+- Admin dapat meninjau aktivitas dan riwayat perubahan role di menu Aktivitas.
+- Login dibatasi setelah lima percobaan dalam 15 menit; sesi tidak aktif berakhir
+  setelah 30 menit.
+
+## Backup dan restore
+
+Jalankan backup ke folder privat di luar document root dan folder proyek:
 
 ```powershell
-php database\migrate.php
+php database\backup.php 'C:\laragon\backup\webspp'
 ```
 
-Migrasi membuat database bila belum ada, membuat tabel yang belum tersedia, dan
-mencatat versi migrasi agar aman dijalankan kembali. Migrasi tidak menghapus
-tabel atau data yang sudah ada. Saat diminta, buat akun admin pertama; input
-password tampil di terminal. Jika password database bukan default, atur
-`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, dan `DB_PASS` di sesi terminal
-sebelum menjalankan perintah.
+Jika binary MySQL tidak ada di `PATH`, atur `MYSQLDUMP_BIN` untuk backup dan
+`MYSQL_BIN` untuk restore. File backup berisi data siswa dan akun (password
+tersimpan sebagai hash); lindungi dan jangan masukkan file backup ke Git.
 
-Alternatifnya, buat database `webspp` dan import `database/webspp.sql` melalui
-phpMyAdmin. Untuk update struktur database yang sudah ada, tetap gunakan
-migrasi CLI.
+Restore hanya diizinkan ke database kosong yang sudah dibuat. Contoh, buat
+database baru bernama `webspp_restore` di MySQL/phpMyAdmin, lalu arahkan koneksi
+ke database itu:
 
-4. Konfigurasi database pada [koneksi.php](koneksi.php) atau melalui
-   environment variable:
-
-```text
-DB_HOST=localhost
-DB_PORT=3308
-DB_NAME=webspp
-DB_USER=root
-DB_PASS=
+```powershell
+$env:DB_NAME = 'webspp_restore'
+php database\restore.php 'C:\laragon\backup\webspp-YYYYMMDD-HHMMSS.sql' --confirm
 ```
 
-Contoh konfigurasi tersedia pada [.env.example](.env.example). Perlu diperhatikan
-bahwa `.env.example` bukan pembaca konfigurasi otomatis; gunakan environment
-variable milik Laragon, Apache, Nginx, atau terminal.
+Gunakan hanya backup yang dipercaya. Restore tidak menimpa tabel yang sudah ada.
 
-5. Jalankan aplikasi dari browser melalui Laragon atau web server lokal.
+## Pengujian
 
-Saat menambahkan siswa, isi NISN yang valid. Sistem membuat jadwal SPP 36 bulan
-dengan jatuh tempo tanggal 10, dimulai dari bulan berjalan.
+Setelah migrasi, jalankan tes integritas database. Tes membuat fixture dalam
+transaksi lalu membatalkannya sehingga data uji tidak tertinggal:
 
-> Migrasi hanya memulihkan struktur tabel, bukan data yang sudah terhapus.
-> Untuk pemulihan data lama, diperlukan backup database (misalnya ekspor SQL).
+```powershell
+php tests\database_integrity.php
+```
 
 ## Hak Cipta
 

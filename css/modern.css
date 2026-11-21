@@ -145,6 +145,29 @@ label { margin-bottom: 7px; color: #536462; font-size: 11px; font-weight: 700; }
 .quick-actions a span { color: var(--mint-strong); font-size: 20px; }
 .loading-state { padding: 22px; color: var(--muted); text-align: center; }
 .modal-open { overflow: hidden; }
+.report-filter { margin-bottom: 20px; }
+.report-filter-form { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 12px; }
+.report-filter-form .form-group { min-width: 180px; margin: 0; }
+.report-filter-form .btn { margin-bottom: 0; }
+.report-stat { min-height: 145px; }
+.report-stat .card-body { display: flex; flex-direction: column; gap: 9px; }
+.report-stat strong { color: var(--ink); font-family: Georgia,serif; font-size: 25px; font-weight: 500; letter-spacing: -.03em; }
+.report-stat small { color: var(--muted); font-size: 10px; }
+.report-stat-alert { border-color: #f0e2d4; background: #fffdfa; }
+.report-stat-alert strong { color: #a76b3d; }
+.card-header-actions { gap: 14px; }
+.card-header-actions > div { display: flex; flex-direction: column; gap: 4px; }
+.card-header-actions small { color: var(--muted); font-size: 10px; }
+.payment-history-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 22px; }
+.payment-history-summary > div { display: flex; flex-direction: column; gap: 7px; padding: 14px; border: 1px solid var(--line); border-radius: 11px; background: #fafcfb; }
+.payment-history-summary span { color: var(--muted); font-size: 10px; }
+.payment-history-summary strong { color: var(--ink); font-size: 12px; }
+.audit-pagination { display: flex; align-items: center; justify-content: flex-end; gap: 14px; margin-top: 20px; color: var(--muted); font-size: 11px; }
+.user-create-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 18px; }
+.user-create-form .form-group { margin: 0; }
+.user-create-form > button { justify-self: start; }
+.role-form { display: flex; align-items: center; gap: 8px; min-width: 220px; }
+.role-form .form-control { min-width: 0; }
 @media (max-width: 900px) {
     .app-sidebar { position: fixed; z-index: 1200; top: 0; bottom: 0; left: 0; width: 270px; min-height: 100vh; transform: translateX(-100%); transition: transform .22s ease; }
     .app-sidebar.is-open { transform: translateX(0); }
@@ -166,10 +189,15 @@ label { margin-bottom: 7px; color: #536462; font-size: 11px; font-weight: 700; }
     .app-footer { flex-direction: column; padding: 15px 16px; }
     .dashboard-welcome { align-items: flex-start; flex-direction: column; padding: 19px; }
     .dashboard-bottom { grid-template-columns: 1fr; }
+    .payment-history-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .login-page { padding: 14px; }
     .login-shell { min-height: 0; grid-template-columns: 1fr; border-radius: 19px; }
     .login-brand-panel { min-height: 230px; padding: 25px; }
     .login-brand-panel h1 { font-size: 34px; }
     .login-brand-panel p { margin-bottom: 0; }
     .login-form-panel { padding: 30px 25px; }
+    .report-filter-form { align-items: stretch; flex-direction: column; }
+    .report-filter-form .form-group { width: 100%; }
+    .payment-history-summary { grid-template-columns: 1fr 1fr; }
+    .user-create-form { grid-template-columns: 1fr; }
 }

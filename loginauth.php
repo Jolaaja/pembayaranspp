@@ -14,28 +14,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     } else {
         $user = trim((string) ($_POST['user'] ?? ''));
         $pass = (string) ($_POST['pass'] ?? '');
-        $stmt = mysqli_prepare($conn, 'SELECT id_admin, nama_admin, pass_admin FROM admin WHERE user_admin = ? LIMIT 1');
-        mysqli_stmt_bind_param($stmt, 's', $user);
-        mysqli_stmt_execute($stmt);
-        $admin = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
-        $passwordHash = (string) ($admin['pass_admin'] ?? '');
-        $valid = $admin && (password_verify($pass, $passwordHash) || hash_equals($passwordHash, $pass));
+        if ($user === '' || $pass === '' || login_is_rate_limited($conn, $user)) {
+            $loginError = 'Login tidak tersedia sementara. Periksa kredensial atau coba lagi dalam 15 menit.';
+            audit_event($conn, 'login_blocked', 'account', null, 'Percobaan login dibatasi.');
+        } else {
+            $stmt = mysqli_prepare($conn, 'SELECT id_admin, nama_admin, pass_admin, role FROM admin WHERE user_admin = ? LIMIT 1');
+            mysqli_stmt_bind_param($stmt, 's', $user);
+            mysqli_stmt_execute($stmt);
+            $admin = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+            $passwordHash = (string) ($admin['pass_admin'] ?? '');
+            $valid = $admin && (password_verify($pass, $passwordHash) || hash_equals($passwordHash, $pass));
 
-        if ($valid) {
-            session_regenerate_id(true);
-            $_SESSION['admin'] = (int) $admin['id_admin'];
-            $_SESSION['nama_admin'] = $admin['nama_admin'];
+            if ($valid) {
+                session_regenerate_id(true);
+                $_SESSION['admin'] = (int) $admin['id_admin'];
+                $_SESSION['nama_admin'] = $admin['nama_admin'];
+                $_SESSION['role'] = $admin['role'];
+                $_SESSION['last_activity'] = time();
+                clear_login_attempts($conn, $user);
 
-            if (password_get_info($passwordHash)['algo'] === null) {
-                $hash = password_hash($pass, PASSWORD_DEFAULT);
-                $update = mysqli_prepare($conn, 'UPDATE admin SET pass_admin = ? WHERE id_admin = ?');
-                mysqli_stmt_bind_param($update, 'si', $hash, $_SESSION['admin']);
-                mysqli_stmt_execute($update);
+                if (password_get_info($passwordHash)['algo'] === null) {
+                    $hash = password_hash($pass, PASSWORD_DEFAULT);
+                    $update = mysqli_prepare($conn, 'UPDATE admin SET pass_admin = ? WHERE id_admin = ?');
+                    mysqli_stmt_bind_param($update, 'si', $hash, $_SESSION['admin']);
+                    mysqli_stmt_execute($update);
+                }
+                audit_event($conn, 'login_success', 'admin', (int) $admin['id_admin'], 'Administrator berhasil masuk.');
+                header('Location: index.php');
+                exit;
             }
-            header('Location: index.php');
-            exit;
+
+            record_login_failure($conn, $user);
+            audit_event($conn, 'login_failure', 'account', null, 'Kredensial login tidak valid.');
+            $loginError = 'Username atau password salah.';
         }
-        $loginError = 'Username atau password salah.';
     }
 }
 ?>
@@ -68,6 +80,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
             <span class="eyebrow">SELAMAT DATANG KEMBALI</span>
             <h2>Masuk ke akun</h2>
             <p>Gunakan akun administrator sekolah untuk melanjutkan.</p>
+            <?php if (isset($_GET['expired'])): ?>
+                <div class="login-error" role="status">Sesi Anda berakhir. Silakan masuk kembali.</div>
+            <?php endif; ?>
             <?php if ($loginError !== ''): ?>
                 <div class="login-error" role="alert"><?= e($loginError) ?></div>
             <?php endif; ?>
