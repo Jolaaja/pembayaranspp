@@ -4,6 +4,7 @@ Aplikasi PHP dan MySQL untuk mengelola siswa, data sekolah, pembayaran SPP,
 riwayat transaksi, laporan operasional, dan akun petugas. Antarmuka responsif
 menggunakan aset lokal; menu, modal, dan pencarian tabel tidak memerlukan
 direktori `vendor`.
+Identitas Portal SPP memakai logo vektor lokal di `assets/spp-mark.svg`.
 
 ## Persyaratan
 
@@ -40,6 +41,16 @@ direktori `vendor`.
    jalankan dari terminal privat.
 
 4. Buka aplikasi melalui Laragon atau web server lokal.
+
+   Untuk menjalankan server pengembangan PHP dari terminal:
+
+   ```powershell
+   php artisan serve
+   ```
+
+   Buka `http://127.0.0.1:8000`. Perintah ini adalah runner server lokal
+   sederhana, bukan Laravel Artisan. Gunakan `php artisan serve --port=8080`
+   jika port 8000 sedang digunakan.
 
 `webspp.sql` dan `database/webspp.sql` adalah skema dasar lama untuk instalasi
 baru. Setelah mengimpor salah satunya, tetap jalankan migrasi CLI. Jangan impor

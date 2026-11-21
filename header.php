@@ -29,6 +29,7 @@ $isAdmin = (string) ($_SESSION['role'] ?? '') === 'admin';
     <meta name="theme-color" content="#153a3a">
     <meta name="description" content="Aplikasi pengelolaan pembayaran SPP sekolah">
     <title><?= e($pageTitle) ?> | SPP</title>
+    <link rel="icon" href="assets/spp-mark.svg" type="image/svg+xml">
     <link rel="stylesheet" href="css/sb-admin-2.min.css">
     <link rel="stylesheet" href="css/modern.css">
 </head>
@@ -36,7 +37,7 @@ $isAdmin = (string) ($_SESSION['role'] ?? '') === 'admin';
 <div class="app-shell">
     <aside class="app-sidebar" id="appSidebar">
         <a class="brand-lockup" href="index.php" aria-label="Portal SPP, ke ringkasan">
-        <span class="brand-mark">S</span>
+        <img class="brand-mark" src="assets/spp-mark.svg" alt="">
         <span class="brand-copy"><strong>PORTAL SPP</strong><small>SEKOLAH · KEUANGAN</small></span>
         </a>
         <div class="sidebar-caption">MENU UTAMA</div>
