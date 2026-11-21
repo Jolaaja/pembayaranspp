@@ -47,15 +47,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['simpan']) || isset($
 include __DIR__ . '/header.php';
 ?>
 
-<!-- button triger -->
- <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#exampleModal">Tambah Data</button>
-<!-- button triger -->
-                    <!-- DataTales Example -->
-                    <div class="card shadow mb-4">
-                        <div class="card-header py-3">
-                            <h6 class="m-0 font-weight-bold text-primary">Data Kelas</h6>
-                        </div>
-                        <div class="card-body">
+<section class="card">
+    <div class="card-header card-header-actions">
+        <div><h6>Daftar kelas</h6><small>Kelola kelas yang digunakan pada data siswa.</small></div>
+        <button class="btn btn-primary btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#exampleModal">＋ Tambah kelas</button>
+    </div>
+    <div class="card-body">
                             <div class="table-responsive">
                                 <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                                     <thead>
@@ -67,9 +64,12 @@ include __DIR__ . '/header.php';
                                     </thead>
                                     <tbody>
                                     <?php 
-                                    $no=1;
-                                    $query = "SELECT * FROM kelas ";
-                                    $exec = mysqli_query($conn,$query);
+                                    $no = 1;
+                                    $exec = mysqli_query($conn, 'SELECT * FROM kelas ORDER BY nama_kelas');
+                                    if (mysqli_num_rows($exec) === 0):
+                                    ?>
+                                        <tr><td colspan="3" class="empty-state">Belum ada kelas. Tambahkan kelas untuk mulai mengatur data siswa.</td></tr>
+                                    <?php endif;
                                     while($res = mysqli_fetch_assoc($exec)) :
 
                                      ?>
@@ -86,19 +86,19 @@ include __DIR__ . '/header.php';
                                     </tbody>
                                 </table>
                             </div>
-                        </div>
-                    </div>
+    </div>
+</section>
 
                     <!-- Modal -->
-<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="add-class-title" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="exampleModalLabel">Data Kelas</h5>
+        <h5 class="modal-title" id="add-class-title">Tambah kelas</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">x</button>
       </div>
       <div class="modal-body">
-        <form action="" method="POST">
+        <form action="" method="POST" class="entity-form">
             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
             <div class="form-group"><label for="class-name">Nama kelas</label><input id="class-name" type="text" name="nama_kelas" placeholder="Contoh: XI IPA 1" class="form-control" maxlength="50" required></div>
             <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button><button type="submit" name="simpan" class="btn btn-primary">Simpan</button></div>
@@ -109,11 +109,11 @@ include __DIR__ . '/header.php';
 </div>
 
 <!-- Modal edit data siswa -->
-<div class="modal fade" id="myModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+<div class="modal fade" id="myModal" tabindex="-1" aria-labelledby="edit-class-title" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="exampleModalLabel">Edit Data Kelas</h5>
+        <h5 class="modal-title" id="edit-class-title">Edit data kelas</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">x</button>
       </div>
       <div class="modal-body" id="datakelas">

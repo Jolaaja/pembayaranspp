@@ -117,6 +117,7 @@
     document.querySelectorAll('.table-responsive table').forEach(function (table, index) {
         var wrap = table.closest('.table-responsive');
         var body = table.tBodies[0];
+        if (table.getAttribute('data-server-controls') === 'true') return;
         if (!wrap || !body || wrap.querySelector('.table-search')) return;
 
         var rows = Array.prototype.filter.call(body.rows, function (row) {
@@ -182,7 +183,7 @@
                 button.appendChild(indicator);
                 header.textContent = '';
                 header.appendChild(button);
-                sortableHeaders.push({ header: header, button: button, indicator: indicator });
+                sortableHeaders.push({ header: header, button: button, indicator: indicator, column: column });
                 button.addEventListener('click', function () {
                     if (sortColumn === column) {
                         sortDirection *= -1;
@@ -191,15 +192,15 @@
                         sortDirection = 1;
                     }
                     currentPage = 1;
-                    sortableHeaders.forEach(function (item, headerIndex) {
+                    sortableHeaders.forEach(function (item) {
                         var headerLabel = item.button.textContent.replace('↕', '').replace('↑', '').replace('↓', '').trim();
                         item.header.removeAttribute('aria-sort');
                         item.indicator.textContent = '↕';
                         item.button.setAttribute('aria-label', 'Urutkan berdasarkan ' + headerLabel);
-                        if (headerIndex === sortColumn) {
+                        if (item.column === sortColumn) {
                             item.header.setAttribute('aria-sort', sortDirection === 1 ? 'ascending' : 'descending');
                             item.indicator.textContent = sortDirection === 1 ? '↑' : '↓';
-                            item.button.setAttribute('aria-label', 'Urutkan ' + headerLabel + (sortDirection === 1 ? ' menurun' : ' menaik'));
+                            item.button.setAttribute('aria-label', 'Urutan ' + headerLabel + (sortDirection === 1 ? ' menaik' : ' menurun'));
                         }
                     });
                     applyTableState();
@@ -226,10 +227,10 @@
                 });
             }
 
-            var totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+            var totalPages = paginate ? Math.max(1, Math.ceil(filtered.length / pageSize)) : 1;
             currentPage = Math.min(currentPage, totalPages);
-            var start = filtered.length ? (currentPage - 1) * pageSize : 0;
-            var end = Math.min(start + pageSize, filtered.length);
+            var start = filtered.length && paginate ? (currentPage - 1) * pageSize : 0;
+            var end = paginate ? Math.min(start + pageSize, filtered.length) : filtered.length;
             var visibleRows = new Set(filtered.slice(start, end));
             rows.forEach(function (row) {
                 row.hidden = !visibleRows.has(row);

@@ -293,6 +293,14 @@ label { margin-bottom: 7px; color: #536462; font-size: 11px; font-weight: 700; }
 .search-result-empty p { max-width: 360px; }
 .student-directory-card .card-body { padding-top: 16px; }
 .directory-hint { margin: 0 0 14px; color: var(--muted); font-size: 10px; }
+.directory-filter-form { display: grid; grid-template-columns: minmax(220px,2fr) minmax(140px,1fr) minmax(100px,.7fr) auto; align-items: end; gap: 12px; margin: 0 0 18px; padding: 15px; border: 1px solid var(--line); border-radius: 12px; background: #f9fbf9; }
+.directory-filter-form .form-group { min-width: 0; margin: 0; }
+.directory-filter-form .btn { min-height: 43px; }
+.server-pagination { display: flex; align-items: center; justify-content: flex-end; gap: 14px; margin-top: 18px; color: var(--muted); font-size: 10px; }
+.entity-form .form-group { margin-bottom: 16px; }
+.entity-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 0 16px; }
+.entity-form-full { grid-column: 1 / -1; }
+.entity-form > .modal-footer { padding: 16px 0 0; border-top: 1px solid var(--line); }
 .student-directory-identity { display: flex; align-items: center; gap: 11px; min-width: 190px; }
 .student-directory-identity > span:last-child { display: flex; flex-direction: column; gap: 4px; }
 .student-directory-identity strong { color: var(--ink); font-size: 11px; }
@@ -382,6 +390,12 @@ label { margin-bottom: 7px; color: #536462; font-size: 11px; font-weight: 700; }
     .payment-schedule-table .payment-empty-row, .payment-schedule-table .table-no-results { display: block; padding: 0; border: 0; background: transparent; box-shadow: none; }
     .payment-schedule-table .payment-empty-row td, .payment-schedule-table .table-no-results td { display: block; padding: 28px 14px; text-align: center; }
     .payment-schedule-table .payment-empty-row td::before, .payment-schedule-table .table-no-results td::before { content: none; }
+    .directory-filter-form { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; padding: 12px; }
+    .directory-filter-form .directory-search-field { grid-column: 1 / -1; }
+    .directory-filter-form > .btn { grid-column: 1 / -1; width: 100%; }
+    .server-pagination { justify-content: center; flex-wrap: wrap; }
+    .entity-form-grid { grid-template-columns: 1fr; }
+    .entity-form-full { grid-column: auto; }
 }
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }

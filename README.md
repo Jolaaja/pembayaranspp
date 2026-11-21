@@ -4,7 +4,7 @@ Aplikasi PHP dan MySQL untuk mengelola siswa, data sekolah, pembayaran SPP,
 riwayat transaksi, laporan operasional, dan akun petugas. Antarmuka responsif
 menggunakan aset lokal; menu, modal, dan pencarian tabel tidak memerlukan
 direktori `vendor`.
-Identitas Portal SPP memakai logo vektor lokal di `assets/spp-mark.svg`.
+Identitas Portal SPP memakai logo vektor lokal di `img/logo-spp.svg`.
 
 ## Persyaratan
 
@@ -74,7 +74,10 @@ skema ke database yang sudah berisi data.
 - Status pembayaran, notifikasi, dan fokus keyboard menggunakan penanda visual
   yang konsisten dan mudah dibedakan.
 - Laporan dapat difilter berdasarkan rentang tanggal, menampilkan rekap kelas,
-  rekap bulanan, dan tunggakan siswa aktif. Ekspor Excel menggunakan CSV.
+  rekap bulanan, dan tunggakan siswa aktif. Slip serta laporan cetak menyertakan
+  logo lokal, ringkasan, dan ruang tanda tangan; ekspor Excel menggunakan CSV.
+- Direktori siswa memfilter, mengurutkan, dan membatasi hasil di server agar
+  penggunaan data besar tetap ringan.
 - Admin dapat meninjau aktivitas dan riwayat perubahan role di menu Aktivitas.
 - Login dibatasi setelah lima percobaan dalam 15 menit; sesi tidak aktif berakhir
   setelah 30 menit.

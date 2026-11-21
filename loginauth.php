@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#153a3a">
     <title>Masuk | Portal Pembayaran Sekolah</title>
-    <link rel="icon" href="assets/spp-mark.svg" type="image/svg+xml">
+    <link rel="icon" href="img/logo-spp.svg" type="image/svg+xml">
     <link rel="stylesheet" href="css/sb-admin-2.min.css">
     <link rel="stylesheet" href="css/modern.css">
 </head>
@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     <div class="login-shell">
         <section class="login-brand-panel">
             <a class="brand-lockup" href="loginauth.php">
-                <img class="brand-mark" src="assets/spp-mark.svg" alt="">
+                <img class="brand-mark" src="img/logo-spp.svg" alt="">
                 <span class="brand-copy"><strong>PORTAL SPP</strong><small>SEKOLAH · KEUANGAN</small></span>
             </a>
             <div>

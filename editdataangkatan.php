@@ -49,15 +49,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['simpan']) || isset($
 include __DIR__ . '/header.php';
 ?>
 
-<!-- button triger -->
- <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#exampleModal">Tambah Data</button>
-<!-- button triger -->
-                    <!-- DataTales Example -->
-                    <div class="card shadow mb-4">
-                        <div class="card-header py-3">
-                            <h6 class="m-0 font-weight-bold text-primary">Data Angkatan</h6>
-                        </div>
-                        <div class="card-body">
+<section class="card">
+    <div class="card-header card-header-actions">
+        <div><h6>Daftar angkatan</h6><small>Atur tahun angkatan dan nominal SPP bulanan.</small></div>
+        <button class="btn btn-primary btn-sm" type="button" data-bs-toggle="modal" data-bs-target="#exampleModal">＋ Tambah angkatan</button>
+    </div>
+    <div class="card-body">
                             <div class="table-responsive">
                                 <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
                                     <thead>
@@ -70,9 +67,12 @@ include __DIR__ . '/header.php';
                                     </thead>
                                     <tbody>
                                     <?php 
-                                    $no=1;
-                                    $query = "SELECT * FROM angkatan ";
-                                    $exec = mysqli_query($conn,$query);
+                                    $no = 1;
+                                    $exec = mysqli_query($conn, 'SELECT * FROM angkatan ORDER BY nama_angkatan');
+                                    if (mysqli_num_rows($exec) === 0):
+                                    ?>
+                                        <tr><td colspan="4" class="empty-state">Belum ada angkatan. Tambahkan angkatan untuk mengatur biaya SPP.</td></tr>
+                                    <?php endif;
                                     while($res = mysqli_fetch_assoc($exec)) :
 
                                      ?>
@@ -90,19 +90,19 @@ include __DIR__ . '/header.php';
                                     </tbody>
                                 </table>
                             </div>
-                        </div>
-                    </div>
+    </div>
+</section>
 
                     <!-- Modal -->
-<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="add-cohort-title" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="exampleModalLabel">Data Angkatan</h5>
+        <h5 class="modal-title" id="add-cohort-title">Tambah angkatan</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">x</button>
       </div>
       <div class="modal-body">
-        <form action="" method="POST">
+        <form action="" method="POST" class="entity-form">
             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
             <div class="form-group"><label for="cohort-name">Nama angkatan</label><input id="cohort-name" type="text" name="nama_angkatan" placeholder="Contoh: 2026" class="form-control" maxlength="50" required></div>
             <div class="form-group"><label for="cohort-fee">Biaya SPP per bulan</label><input id="cohort-fee" type="number" name="biaya" placeholder="Masukkan nominal rupiah" class="form-control" min="0" step="1" required></div>
@@ -114,11 +114,11 @@ include __DIR__ . '/header.php';
 </div>
 
 <!-- Modal edit data siswa -->
-<div class="modal fade" id="myModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+<div class="modal fade" id="myModal" tabindex="-1" aria-labelledby="edit-cohort-title" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="exampleModalLabel">Edit Data Angkatan</h5>
+        <h5 class="modal-title" id="edit-cohort-title">Edit data angkatan</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">x</button>
       </div>
       <div class="modal-body" id="dataangkatan">

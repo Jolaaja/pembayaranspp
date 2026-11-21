@@ -43,7 +43,7 @@ if ($entityKey === 'id_siswa') {
         'id_jurusan' => ['jurusan', 'nama_jurusan', 'id_jurusan'],
     ];
     ?>
-    <form action="<?= e($entity[1]) ?>" method="post">
+    <form action="<?= e($entity[1]) ?>" method="post" class="entity-form">
         <?= $csrfInput ?>
         <input type="hidden" name="id_siswa" value="<?= (int) $record['id_siswa'] ?>">
         <div class="form-group"><label>NISN</label><input class="form-control" value="<?= e($record['nisn']) ?>" disabled></div>
@@ -64,7 +64,7 @@ if ($entityKey === 'id_siswa') {
     <?php
 } elseif ($entityKey === 'id_angkatan') {
     ?>
-    <form action="<?= e($entity[1]) ?>" method="post">
+    <form action="<?= e($entity[1]) ?>" method="post" class="entity-form">
         <?= $csrfInput ?><input type="hidden" name="id_angkatan" value="<?= (int) $record['id_angkatan'] ?>">
         <div class="form-group"><label for="year-name">Nama angkatan</label><input id="year-name" class="form-control" name="nama_angkatan" maxlength="50" value="<?= e($record['nama_angkatan']) ?>" required></div>
         <div class="form-group"><label for="year-fee">Biaya SPP (Rupiah)</label><input id="year-fee" class="form-control" type="number" min="0" step="1" name="biaya" value="<?= e($record['biaya']) ?>" required></div>
@@ -74,7 +74,7 @@ if ($entityKey === 'id_siswa') {
 } else {
     $column = $entityKey === 'id_kelas' ? 'nama_kelas' : 'nama_jurusan';
     ?>
-    <form action="<?= e($entity[1]) ?>" method="post">
+    <form action="<?= e($entity[1]) ?>" method="post" class="entity-form">
         <?= $csrfInput ?><input type="hidden" name="<?= e($entityKey) ?>" value="<?= (int) $record[$entityKey] ?>">
         <div class="form-group"><label for="master-name">Nama</label><input id="master-name" class="form-control" name="<?= e($column) ?>" maxlength="50" value="<?= e($record[$column]) ?>" required></div>
         <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button><button type="submit" class="btn btn-primary" name="edit">Simpan perubahan</button></div>

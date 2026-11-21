@@ -223,6 +223,72 @@ function db_execute(mysqli $conn, string $sql, string $types = '', array $params
     return $stmt;
 }
 
+function fetch_student_page(
+    mysqli $conn,
+    string $search,
+    string $sort,
+    string $direction,
+    int $page,
+    int $perPage,
+    bool $includeAddress = false
+): array {
+    $sortColumns = [
+        'nama' => 's.nama',
+        'nisn' => 's.nisn',
+        'angkatan' => 'a.nama_angkatan',
+        'kelas' => 'k.nama_kelas',
+        'jurusan' => 'j.nama_jurusan',
+    ];
+    if (!isset($sortColumns[$sort]) || !in_array($direction, ['asc', 'desc'], true)) {
+        throw new InvalidArgumentException('Pengurutan daftar siswa tidak valid.');
+    }
+    if ($page < 1 || $perPage < 1 || $perPage > 100) {
+        throw new InvalidArgumentException('Halaman daftar siswa tidak valid.');
+    }
+
+    $fromSql = "FROM siswa s
+        JOIN angkatan a ON a.id_angkatan = s.id_angkatan
+        JOIN jurusan j ON j.id_jurusan = s.id_jurusan
+        JOIN kelas k ON k.id_kelas = s.id_kelas
+        WHERE s.status = 'aktif'";
+    $types = '';
+    $params = [];
+    if ($search !== '') {
+        $like = '%' . addcslashes($search, "\\_%") . '%';
+        $fromSql .= ' AND (s.nisn LIKE ? OR s.nama LIKE ? OR a.nama_angkatan LIKE ? OR j.nama_jurusan LIKE ? OR k.nama_kelas LIKE ?)';
+        $types = 'sssss';
+        $params = [$like, $like, $like, $like, $like];
+    }
+
+    $countStmt = db_execute($conn, 'SELECT COUNT(*) AS total ' . $fromSql, $types, $params);
+    $countResult = mysqli_stmt_get_result($countStmt);
+    $countRow = mysqli_fetch_assoc($countResult);
+    mysqli_stmt_close($countStmt);
+    $total = (int) ($countRow['total'] ?? 0);
+    $lastPage = max(1, (int) ceil($total / $perPage));
+    $page = min($page, $lastPage);
+    $offset = ($page - 1) * $perPage;
+    $addressColumn = $includeAddress ? ', s.alamat' : '';
+    $orderDirection = strtoupper($direction);
+    $studentsStmt = db_execute(
+        $conn,
+        'SELECT s.id_siswa, s.nisn, s.nama, a.nama_angkatan, j.nama_jurusan, k.nama_kelas' . $addressColumn . ' '
+            . $fromSql . ' ORDER BY ' . $sortColumns[$sort] . ' ' . $orderDirection . ', s.nisn ASC LIMIT ? OFFSET ?',
+        $types . 'ii',
+        array_merge($params, [$perPage, $offset])
+    );
+    $students = mysqli_stmt_get_result($studentsStmt);
+    mysqli_stmt_close($studentsStmt);
+
+    return [
+        'rows' => $students,
+        'total' => $total,
+        'page' => $page,
+        'last_page' => $lastPage,
+        'per_page' => $perPage,
+    ];
+}
+
 function flash(string $message, string $type = 'success'): void
 {
     $_SESSION['flash'] = ['message' => $message, 'type' => $type];

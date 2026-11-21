@@ -67,6 +67,31 @@ try {
         [$nisn, 'Siswa Uji', $cohortId, $majorId, $classId, 'Data uji sementara']
     );
     $studentId = mysqli_insert_id($conn);
+    $secondStudentNisn = 'T' . bin2hex(random_bytes(8));
+    db_execute(
+        $conn,
+        'INSERT INTO siswa (nisn, nama, id_angkatan, id_jurusan, id_kelas, alamat) VALUES (?, ?, ?, ?, ?, ?)',
+        'ssiiis',
+        [$secondStudentNisn, 'Siswa Uji Kedua', $cohortId, $majorId, $classId, 'Data uji sementara']
+    );
+    $directoryPage = fetch_student_page($conn, 'Siswa Uji', 'nama', 'asc', 1, 1);
+    $firstDirectoryStudent = mysqli_fetch_assoc($directoryPage['rows']);
+    expect_true($directoryPage['total'] === 2 && $directoryPage['page'] === 1 && $firstDirectoryStudent['nama'] === 'Siswa Uji', 'Direktori siswa harus memfilter dan mengurutkan hasil melalui database.');
+    $secondDirectoryPage = fetch_student_page($conn, 'Siswa Uji', 'nama', 'asc', 2, 1);
+    $secondDirectoryStudent = mysqli_fetch_assoc($secondDirectoryPage['rows']);
+    expect_true($secondDirectoryPage['total'] === 2 && $secondDirectoryStudent['nama'] === 'Siswa Uji Kedua', 'Pagination direktori harus mengembalikan halaman berikutnya dan total hasil yang benar.');
+    $managementDirectoryPage = fetch_student_page($conn, 'Siswa Uji', 'nama', 'asc', 999, 1, true);
+    $managementDirectoryStudent = mysqli_fetch_assoc($managementDirectoryPage['rows']);
+    expect_true($managementDirectoryPage['page'] === 2 && isset($managementDirectoryStudent['alamat']), 'Halaman di luar jangkauan harus dibatasi dan data alamat hanya disertakan pada daftar pengelolaan.');
+    $reverseDirectoryPage = fetch_student_page($conn, 'Siswa Uji', 'nama', 'desc', 1, 1);
+    expect_true(mysqli_fetch_assoc($reverseDirectoryPage['rows'])['nama'] === 'Siswa Uji Kedua', 'Pengurutan direktori harus mengikuti arah yang dipilih.');
+    $invalidDirectorySortRejected = false;
+    try {
+        fetch_student_page($conn, '', 'alamat', 'asc', 1, 25);
+    } catch (InvalidArgumentException $error) {
+        $invalidDirectorySortRejected = true;
+    }
+    expect_true($invalidDirectorySortRejected, 'Direktori harus menolak kolom pengurutan yang tidak diizinkan.');
     $dueDate = date('Y-m-d', strtotime('-1 day'));
     db_execute($conn, 'INSERT INTO pembayaran (id_siswa, jatuhtempo, bulan, jumlah) VALUES (?, ?, ?, ?)', 'isss', [$studentId, $dueDate, 'Januari 2026', '98765.43']);
     $paymentId = mysqli_insert_id($conn);
