@@ -42,6 +42,13 @@ expect_true(normalize_indonesian_mobile('081234567890') === '+6281234567890', 'N
 expect_true(normalize_indonesian_mobile('+6281234567890') === '+6281234567890', 'Nomor ponsel internasional yang valid harus tetap konsisten.');
 expect_true(normalize_indonesian_mobile('0215550100') === null, 'Nomor telepon non-ponsel tidak boleh menjadi tautan WhatsApp.');
 expect_true(normalize_indonesian_mobile('call 081234567890') === null, 'Teks selain format nomor tidak boleh dinormalisasi sebagai telepon.');
+expect_true(is_valid_school_website('') && is_valid_school_website('https://sekolah.sch.id'), 'Situs sekolah kosong atau berprotokol HTTPS harus diterima.');
+expect_true(
+    !is_valid_school_website('javascript:alert(1)')
+        && !is_valid_school_website('ftp://sekolah.sch.id')
+        && !is_valid_school_website('https://user:secret@sekolah.sch.id'),
+    'Situs sekolah harus menolak skema non-web dan kredensial yang tidak aman.'
+);
 $testSchedule = build_spp_schedule('2026-03');
 expect_true(count($testSchedule) === 36 && $testSchedule[0]['due_date'] === '2026-03-10' && $testSchedule[35]['due_date'] === '2029-02-10', 'Jadwal SPP harus membuat 36 periode dari bulan pilihan dengan jatuh tempo tanggal 10.');
 $invalidScheduleRejected = false;
@@ -58,6 +65,11 @@ expect_column_type($conn, 'pembayaran', 'tglbayar', 'date');
 expect_column_type($conn, 'admin', 'gender', 'enum');
 expect_column_type($conn, 'admin', 'profile_photo', 'mediumblob');
 expect_column_type($conn, 'school_settings', 'logo_data', 'mediumblob');
+expect_column_type($conn, 'school_settings', 'school_npsn', 'varchar');
+expect_column_type($conn, 'school_settings', 'principal_name', 'varchar');
+expect_column_type($conn, 'school_settings', 'school_website', 'varchar');
+expect_column_type($conn, 'school_identity_history', 'logo_data', 'mediumblob');
+expect_column_type($conn, 'school_identity_history', 'change_type', 'enum');
 expect_column_type($conn, 'siswa', 'guardian_name', 'varchar');
 expect_column_type($conn, 'siswa', 'guardian_phone', 'varchar');
 expect_column_type($conn, 'pembayaran_events', 'payment_method', 'enum');
@@ -75,6 +87,89 @@ try {
     $anonymousAudit = db_execute($conn, 'SELECT id_admin IS NULL AS actor_is_null FROM admin_audit_log WHERE id_audit = ?', 'i', [$anonymousAuditId]);
     expect_true((int) mysqli_fetch_assoc(mysqli_stmt_get_result($anonymousAudit))['actor_is_null'] === 1, 'Audit tanpa sesi harus menyimpan aktor sebagai NULL.');
     $_SESSION['admin'] = $adminId;
+
+    $currentSchoolIdentity = fetch_school_settings($conn);
+    $schoolVersionId = record_school_identity_version($conn);
+    $schoolVersionStmt = db_execute(
+        $conn,
+        'SELECT school_name, school_npsn, principal_name, school_website, logo_data, logo_mime
+         FROM school_identity_history WHERE id_version = ?',
+        'i',
+        [$schoolVersionId]
+    );
+    $schoolVersion = mysqli_fetch_assoc(mysqli_stmt_get_result($schoolVersionStmt));
+    $currentLogoStmt = db_execute($conn, 'SELECT logo_data, logo_mime FROM school_settings WHERE settings_id = 1');
+    $currentLogo = mysqli_fetch_assoc(mysqli_stmt_get_result($currentLogoStmt));
+    expect_true(
+        $schoolVersion['school_name'] === $currentSchoolIdentity['school_name']
+            && $schoolVersion['school_npsn'] === $currentSchoolIdentity['school_npsn']
+            && $schoolVersion['principal_name'] === $currentSchoolIdentity['principal_name']
+            && $schoolVersion['school_website'] === $currentSchoolIdentity['school_website']
+            && $schoolVersion['logo_data'] === $currentLogo['logo_data']
+            && $schoolVersion['logo_mime'] === $currentLogo['logo_mime'],
+        'Versi identitas harus menyimpan seluruh detail sekolah untuk pemulihan.'
+    );
+    $originalNpsn = $currentSchoolIdentity['school_npsn'];
+    $originalPrincipal = $currentSchoolIdentity['principal_name'];
+    $originalWebsite = $currentSchoolIdentity['school_website'];
+    db_execute(
+        $conn,
+        'UPDATE school_settings SET school_npsn = ?, principal_name = ?, school_website = ? WHERE settings_id = 1',
+        'sss',
+        ['87654321', 'Kepala Sekolah Uji', 'https://history-test.example']
+    );
+    $changedSchoolVersionId = record_school_identity_version($conn);
+    $changedSchoolVersionStmt = db_execute(
+        $conn,
+        'SELECT school_npsn, principal_name, school_website
+         FROM school_identity_history WHERE id_version = ?',
+        'i',
+        [$changedSchoolVersionId]
+    );
+    $changedSchoolVersion = mysqli_fetch_assoc(mysqli_stmt_get_result($changedSchoolVersionStmt));
+    expect_true(
+        $changedSchoolVersion['school_npsn'] === '87654321'
+            && $changedSchoolVersion['principal_name'] === 'Kepala Sekolah Uji'
+            && $changedSchoolVersion['school_website'] === 'https://history-test.example',
+        'Perubahan NPSN, kepala sekolah, dan situs harus masuk ke versi identitas.'
+    );
+    db_execute(
+        $conn,
+        'UPDATE school_settings SET school_npsn = ?, principal_name = ?, school_website = ? WHERE settings_id = 1',
+        'sss',
+        [$originalNpsn, $originalPrincipal, $originalWebsite]
+    );
+    $restoredSchoolVersionId = record_school_identity_version($conn, 'restored', $changedSchoolVersionId);
+    $restoredSchoolVersionStmt = db_execute(
+        $conn,
+        'SELECT school_npsn, principal_name, school_website, restored_from
+         FROM school_identity_history WHERE id_version = ?',
+        'i',
+        [$restoredSchoolVersionId]
+    );
+    $restoredSchoolVersion = mysqli_fetch_assoc(mysqli_stmt_get_result($restoredSchoolVersionStmt));
+    expect_true(
+        $restoredSchoolVersion['school_npsn'] === $originalNpsn
+            && $restoredSchoolVersion['principal_name'] === $originalPrincipal
+            && $restoredSchoolVersion['school_website'] === $originalWebsite
+            && (int) $restoredSchoolVersion['restored_from'] === $changedSchoolVersionId,
+        'Pemulihan harus menyimpan kembali data sekolah dan mencatat versi sumber.'
+    );
+    for ($historyIndex = 0; $historyIndex < 21; $historyIndex++) {
+        db_execute(
+            $conn,
+            "INSERT INTO school_identity_history (school_name, change_type) VALUES (?, 'updated')",
+            's',
+            ['__history_limit_' . $historyIndex]
+        );
+    }
+    $latestSchoolVersionId = record_school_identity_version($conn);
+    $historyCount = db_execute($conn, 'SELECT COUNT(*) AS total FROM school_identity_history');
+    expect_true(
+        (int) mysqli_fetch_assoc(mysqli_stmt_get_result($historyCount))['total'] === 20
+            && $latestSchoolVersionId > 0,
+        'Riwayat identitas harus mempertahankan maksimal 20 versi terbaru.'
+    );
 
     db_execute($conn, 'INSERT INTO kelas (nama_kelas) VALUES (?)', 's', ['__integration_test_class']);
     $classId = mysqli_insert_id($conn);

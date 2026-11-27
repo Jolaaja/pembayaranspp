@@ -46,7 +46,7 @@ $paymentMethodLabels = [
     'other' => 'Lainnya',
 ];
 $receiptNumber = $data['nobayar'] ?: 'SPP-' . str_pad((string) $data['idspp'], 8, '0', STR_PAD_LEFT);
-$schoolContacts = array_filter([$schoolSettings['school_phone'], $schoolSettings['school_email']]);
+$schoolContacts = array_filter([$schoolSettings['school_phone'], $schoolSettings['school_email'], $schoolSettings['school_website']]);
 ?>
 <!doctype html>
 <html lang="id">
@@ -63,7 +63,7 @@ $schoolContacts = array_filter([$schoolSettings['school_phone'], $schoolSettings
         .receipt-head { display: flex; align-items: center; gap: 15px; padding: 32px 38px 24px; border-bottom: 1px solid var(--line); }
         .receipt-head img { width: 58px; height: 58px; }
         .brand-name { margin: 0; color: var(--forest); font-size: 15px; font-weight: 800; letter-spacing: .12em; }
-        .brand-caption { margin: 5px 0 0; color: var(--muted); font-size: 11px; }
+        .brand-caption { margin: 5px 0 0; color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
         .document-title { margin-left: auto; text-align: right; }
         .document-title strong { display: block; font-size: 12px; letter-spacing: .08em; }
         .document-title small { display: block; margin-top: 6px; color: var(--muted); font-size: 10px; }
@@ -116,6 +116,7 @@ $schoolContacts = array_filter([$schoolSettings['school_phone'], $schoolSettings
             <div>
                 <p class="brand-name"><?= e($schoolSettings['school_name']) ?></p>
                 <p class="brand-caption"><?= e($schoolSettings['school_address'] ?: 'Administrasi keuangan sekolah') ?></p>
+                <?php if ($schoolSettings['school_npsn']): ?><p class="brand-caption">NPSN <?= e($schoolSettings['school_npsn']) ?></p><?php endif; ?>
                 <?php if ($schoolContacts): ?><p class="brand-caption"><?= e(implode(' · ', $schoolContacts)) ?></p><?php endif; ?>
             </div>
             <div class="document-title"><strong>BUKTI PEMBAYARAN</strong><small>TAHUN AJARAN <?= e(substr((string) $data['bulan'], -4)) ?></small></div>

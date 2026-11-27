@@ -32,7 +32,10 @@ Identitas Portal SPP memakai logo vektor lokal di `img/logo-spp.svg`.
    preferensi avatar gender dan penyimpanan foto profil. Migrasi
    `005_school_identity.sql` menyiapkan identitas sekolah yang dapat diatur,
    termasuk logo raster yang divalidasi. `006_student_contacts_payment_details.sql`
-   menambahkan kontak orang tua/wali dan detail metode pembayaran. Pemeriksaan awal
+   menambahkan kontak orang tua/wali dan detail metode pembayaran. Migrasi
+   `007_school_identity_history.sql` menambahkan NPSN, kepala sekolah, situs resmi,
+   serta riwayat versi identitas yang dapat dipulihkan (maksimal 20 versi).
+   Pemeriksaan awal
    menghentikan migrasi finansial jika menemukan data lama yang invalid atau
    duplikat; perbaiki data atau pulihkan backup terlebih dahulu. Migrasi tidak
    menghapus data lama.
@@ -88,8 +91,10 @@ skema ke database yang sudah berisi data.
   catatan opsional pada riwayat transaksi dan slip.
 - Admin dapat mengatur nama, logo, alamat, telepon, dan email sekolah. Identitas
   tersebut digunakan pada halaman login, navigasi, slip pembayaran, dan laporan
-  cetak. Pengingat tersedia di aplikasi; pengiriman WhatsApp memerlukan layanan
-  eksternal dan belum diaktifkan.
+  cetak. Pengaturan juga menyediakan pratinjau lintas halaman, pemeriksaan ukuran
+  dan dimensi logo, NPSN, nama kepala sekolah, situs resmi, serta pemulihan
+  hingga 20 versi identitas sebelumnya. Informasi NPSN dan situs resmi ikut
+  dicetak; nama kepala sekolah dapat ditampilkan pada laporan.
 - Status pembayaran, notifikasi, dan fokus keyboard menggunakan penanda visual
   yang konsisten dan mudah dibedakan.
 - Laporan dapat difilter berdasarkan rentang tanggal, menampilkan rekap kelas,

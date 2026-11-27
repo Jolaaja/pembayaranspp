@@ -334,15 +334,129 @@
     }
 
     var schoolLogoInput = document.querySelector('[data-school-logo-input]');
-    var schoolLogoPreview = document.querySelector('[data-school-logo-preview]');
-    if (schoolLogoInput && schoolLogoPreview) {
+    var schoolLogoPreviews = document.querySelectorAll('[data-school-logo-preview]');
+    var schoolLogoFeedback = document.querySelector('[data-school-logo-feedback]');
+    var schoolLogoRemoval = document.querySelector('[data-school-remove-logo]');
+    if (schoolLogoInput && schoolLogoPreviews.length) {
         var schoolLogoPreviewUrl = null;
-        schoolLogoInput.addEventListener('change', function () {
-            var file = schoolLogoInput.files && schoolLogoInput.files[0];
-            if (!file || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) return;
+        var schoolLogoRequest = 0;
+        var schoolLogoOriginalSources = Array.prototype.map.call(schoolLogoPreviews, function (preview) {
+            return preview.getAttribute('src');
+        });
+        var setSchoolLogoFeedback = function (message, state) {
+            if (!schoolLogoFeedback) return;
+            schoolLogoFeedback.textContent = message;
+            schoolLogoFeedback.classList.toggle('is-error', state === 'error');
+            schoolLogoFeedback.classList.toggle('is-success', state === 'success');
+        };
+        var resetSchoolLogoPreview = function () {
             if (schoolLogoPreviewUrl) URL.revokeObjectURL(schoolLogoPreviewUrl);
-            schoolLogoPreviewUrl = URL.createObjectURL(file);
-            schoolLogoPreview.src = schoolLogoPreviewUrl;
+            schoolLogoPreviewUrl = null;
+            schoolLogoPreviews.forEach(function (preview, index) {
+                preview.src = schoolLogoRemoval && schoolLogoRemoval.checked
+                    ? 'img/logo-spp.svg'
+                    : schoolLogoOriginalSources[index];
+            });
+        };
+        if (schoolLogoRemoval) {
+            schoolLogoRemoval.addEventListener('change', function () {
+                schoolLogoRequest += 1;
+                schoolLogoInput.value = '';
+                resetSchoolLogoPreview();
+                setSchoolLogoFeedback(
+                    schoolLogoRemoval.checked
+                        ? 'Logo Portal SPP akan digunakan setelah disimpan.'
+                        : 'Logo sekolah saat ini akan dipertahankan.',
+                    'success'
+                );
+            });
+        }
+        schoolLogoInput.addEventListener('change', function () {
+            schoolLogoRequest += 1;
+            var request = schoolLogoRequest;
+            var file = schoolLogoInput.files && schoolLogoInput.files[0];
+            if (!file) return;
+            if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+                schoolLogoInput.value = '';
+                resetSchoolLogoPreview();
+                setSchoolLogoFeedback('Format harus JPG, PNG, atau WebP.', 'error');
+                return;
+            }
+            if (file.size < 1 || file.size > 2 * 1024 * 1024) {
+                schoolLogoInput.value = '';
+                resetSchoolLogoPreview();
+                setSchoolLogoFeedback('Ukuran logo harus lebih dari 0 dan maksimal 2 MB.', 'error');
+                return;
+            }
+            if (schoolLogoRemoval) schoolLogoRemoval.checked = false;
+
+            var candidateUrl = URL.createObjectURL(file);
+            var image = new Image();
+            image.onload = function () {
+                if (request !== schoolLogoRequest) {
+                    URL.revokeObjectURL(candidateUrl);
+                    return;
+                }
+                var pixelCount = image.naturalWidth * image.naturalHeight;
+                if (image.naturalWidth > 4000 || image.naturalHeight > 4000 || pixelCount > 8000000) {
+                    URL.revokeObjectURL(candidateUrl);
+                    schoolLogoInput.value = '';
+                    resetSchoolLogoPreview();
+                    setSchoolLogoFeedback('Dimensi logo maksimal 4.000 px per sisi dan 8 megapiksel.', 'error');
+                    return;
+                }
+                if (schoolLogoPreviewUrl) URL.revokeObjectURL(schoolLogoPreviewUrl);
+                schoolLogoPreviewUrl = candidateUrl;
+                schoolLogoPreviews.forEach(function (preview) {
+                    preview.src = schoolLogoPreviewUrl;
+                });
+                setSchoolLogoFeedback(
+                    'Pratinjau valid · ' + image.naturalWidth + ' × ' + image.naturalHeight +
+                    ' px · ' + (file.size / 1024 / 1024).toFixed(2) + ' MB.',
+                    'success'
+                );
+            };
+            image.onerror = function () {
+                URL.revokeObjectURL(candidateUrl);
+                if (request !== schoolLogoRequest) return;
+                schoolLogoInput.value = '';
+                resetSchoolLogoPreview();
+                setSchoolLogoFeedback('File gambar tidak dapat dibaca sebagai logo.', 'error');
+            };
+            image.src = candidateUrl;
         });
     }
+
+    var schoolPreviewInputs = {};
+    document.querySelectorAll('[data-school-preview-input]').forEach(function (input) {
+        schoolPreviewInputs[input.getAttribute('data-school-preview-input')] = input;
+        input.addEventListener('input', updateSchoolIdentityPreview);
+    });
+
+    function updateSchoolIdentityPreview() {
+        document.querySelectorAll('[data-school-preview-value]').forEach(function (preview) {
+            var key = preview.getAttribute('data-school-preview-value');
+            var inputKey = key === 'document-npsn' || key === 'login-subtitle' ? 'npsn' :
+                (key === 'document-website' ? 'website' : key);
+            var input = schoolPreviewInputs[inputKey];
+            if (!input) return;
+            var value = input.value.trim();
+            if (key === 'login-subtitle') {
+                preview.textContent = value ? 'NPSN ' + value + ' · KEUANGAN SEKOLAH' : 'KEUANGAN SEKOLAH';
+                return;
+            }
+            value = value || preview.getAttribute('data-school-preview-empty') || '';
+            preview.textContent = (preview.getAttribute('data-school-preview-prefix') || '') + value;
+        });
+    }
+    updateSchoolIdentityPreview();
+
+    document.addEventListener('submit', function (event) {
+        var restoreForm = event.target.closest('[data-school-restore-form]');
+        if (!restoreForm) return;
+        var schoolName = restoreForm.getAttribute('data-school-restore-name');
+        if (!window.confirm('Pulihkan identitas "' + schoolName + '"? Perubahan saat ini tetap masuk ke riwayat dan dapat dipulihkan kembali.')) {
+            event.preventDefault();
+        }
+    });
 }());

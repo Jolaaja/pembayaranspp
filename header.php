@@ -14,7 +14,7 @@ $pageInfo = [
     'laporan.php' => ['Laporan', 'Pilih periode dan cetak rekap pembayaran.'],
     'pengingat.php' => ['Pengingat pembayaran', 'Tinjau tunggakan dan jadwal jatuh tempo.'],
     'adminedit.php' => ['Pengaturan akun', 'Perbarui informasi dan password akun Anda.'],
-    'identitassekolah.php' => ['Identitas sekolah', 'Atur nama, logo, dan informasi kontak sekolah.'],
+    'identitassekolah.php' => ['Identitas sekolah', 'Atur profil, identitas visual, dan riwayat sekolah.'],
     'adminusers.php' => ['Pengguna', 'Kelola akun administrator dan kasir.'],
     'auditlog.php' => ['Aktivitas', 'Tinjau perubahan dan transaksi yang tercatat.'],
 ];
@@ -41,7 +41,7 @@ $schoolSettings = fetch_school_settings($conn);
     <aside class="app-sidebar" id="appSidebar">
         <a class="brand-lockup" href="index.php" aria-label="Portal SPP, ke ringkasan">
         <img class="brand-mark" src="school-logo.php?v=<?= (int) strtotime($schoolSettings['updated_at']) ?>" alt="">
-        <span class="brand-copy"><strong><?= e($schoolSettings['school_name']) ?></strong><small>PORTAL · KEUANGAN</small></span>
+        <span class="brand-copy"><strong><?= e($schoolSettings['school_name']) ?></strong><small><?= $schoolSettings['school_npsn'] ? 'NPSN ' . e($schoolSettings['school_npsn']) : 'PORTAL · KEUANGAN' ?></small></span>
         </a>
         <div class="sidebar-caption">MENU UTAMA</div>
         <nav class="side-nav" aria-label="Navigasi utama">

@@ -197,11 +197,79 @@ function validate_school_logo(array $upload): array
     return ['data' => $contents, 'mime' => $mime];
 }
 
+function is_valid_school_website(string $website): bool
+{
+    if ($website === '') {
+        return true;
+    }
+    if (strlen($website) > 254) {
+        return false;
+    }
+
+    $parts = parse_url($website);
+    return filter_var($website, FILTER_VALIDATE_URL) !== false
+        && is_array($parts)
+        && in_array(strtolower((string) ($parts['scheme'] ?? '')), ['http', 'https'], true)
+        && !isset($parts['user'])
+        && !isset($parts['pass'])
+        && !empty($parts['host']);
+}
+
+function record_school_identity_version(
+    mysqli $conn,
+    string $changeType = 'updated',
+    ?int $restoredFrom = null
+): int {
+    if (!in_array($changeType, ['updated', 'restored'], true)) {
+        throw new InvalidArgumentException('Jenis perubahan identitas sekolah tidak valid.');
+    }
+
+    $adminId = isset($_SESSION['admin']) ? (int) $_SESSION['admin'] : null;
+    $stmt = db_execute(
+        $conn,
+        'INSERT INTO school_identity_history (
+            school_name, school_address, school_phone, school_email, school_npsn,
+            principal_name, school_website, logo_data, logo_mime, changed_by,
+            change_type, restored_from
+         )
+         SELECT school_name, school_address, school_phone, school_email, school_npsn,
+                principal_name, school_website, logo_data, logo_mime, ?, ?, ?
+         FROM school_settings WHERE settings_id = 1',
+        'isi',
+        [$adminId, $changeType, $restoredFrom]
+    );
+    mysqli_stmt_close($stmt);
+    $versionId = (int) mysqli_insert_id($conn);
+    if ($versionId < 1) {
+        throw new RuntimeException('Versi identitas sekolah gagal disimpan.');
+    }
+
+    trim_school_identity_history($conn);
+
+    return $versionId;
+}
+
+function trim_school_identity_history(mysqli $conn): void
+{
+    $stmt = db_execute(
+        $conn,
+        'DELETE FROM school_identity_history
+         WHERE id_version NOT IN (
+             SELECT id_version FROM (
+                 SELECT id_version FROM school_identity_history
+                 ORDER BY id_version DESC LIMIT 20
+             ) AS recent_versions
+         )'
+    );
+    mysqli_stmt_close($stmt);
+}
+
 function fetch_school_settings(mysqli $conn): array
 {
     $result = mysqli_query(
         $conn,
-        'SELECT school_name, school_address, school_phone, school_email, logo_mime, updated_at
+        'SELECT school_name, school_address, school_phone, school_email, school_npsn,
+                principal_name, school_website, logo_mime, updated_at
          FROM school_settings WHERE settings_id = 1'
     );
     $settings = mysqli_fetch_assoc($result);

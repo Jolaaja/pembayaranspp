@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
         <section class="login-brand-panel">
             <a class="brand-lockup" href="loginauth.php">
                 <img class="brand-mark" src="school-logo.php?v=<?= (int) strtotime($schoolSettings['updated_at']) ?>" alt="">
-                <span class="brand-copy"><strong><?= e($schoolSettings['school_name']) ?></strong><small>KEUANGAN SEKOLAH</small></span>
+                <span class="brand-copy"><strong><?= e($schoolSettings['school_name']) ?></strong><small><?= $schoolSettings['school_npsn'] ? 'NPSN ' . e($schoolSettings['school_npsn']) . ' · ' : '' ?>KEUANGAN SEKOLAH</small></span>
             </a>
             <div class="login-intro">
                 <span class="eyebrow">RUANG KERJA SEKOLAH</span>

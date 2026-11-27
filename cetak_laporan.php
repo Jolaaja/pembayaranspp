@@ -33,7 +33,7 @@ while ($row = mysqli_fetch_assoc($result)) {
 mysqli_stmt_close($stmt);
 $count = count($rows);
 $schoolSettings = fetch_school_settings($conn);
-$schoolContacts = array_filter([$schoolSettings['school_phone'], $schoolSettings['school_email']]);
+$schoolContacts = array_filter([$schoolSettings['school_phone'], $schoolSettings['school_email'], $schoolSettings['school_website']]);
 ?>
 <!doctype html>
 <html lang="id">
@@ -49,7 +49,7 @@ $schoolContacts = array_filter([$schoolSettings['school_phone'], $schoolSettings
         .report-head { display: flex; align-items: center; gap: 16px; padding-bottom: 24px; border-bottom: 2px solid var(--forest); }
         .report-head img { width: 56px; height: 56px; }
         .brand-name { margin: 0; color: var(--forest); font-size: 15px; font-weight: 800; letter-spacing: .12em; }
-        .brand-caption { margin: 5px 0 0; color: var(--muted); font-size: 10px; }
+        .brand-caption { margin: 5px 0 0; color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
         .report-title { margin-left: auto; text-align: right; }
         .report-title h1 { margin: 0; color: var(--ink); font-family: Georgia, serif; font-size: 22px; font-weight: 500; }
         .report-title p { margin: 6px 0 0; color: var(--muted); font-size: 11px; }
@@ -105,6 +105,7 @@ $schoolContacts = array_filter([$schoolSettings['school_phone'], $schoolSettings
             <div>
                 <p class="brand-name"><?= e($schoolSettings['school_name']) ?></p>
                 <p class="brand-caption"><?= e($schoolSettings['school_address'] ?: 'Administrasi keuangan sekolah') ?></p>
+                <?php if ($schoolSettings['school_npsn']): ?><p class="brand-caption">NPSN <?= e($schoolSettings['school_npsn']) ?></p><?php endif; ?>
                 <?php if ($schoolContacts): ?><p class="brand-caption"><?= e(implode(' · ', $schoolContacts)) ?></p><?php endif; ?>
             </div>
             <div class="report-title"><h1>Laporan pembayaran</h1><p><?= e(date('d/m/Y', strtotime($awal))) ?> – <?= e(date('d/m/Y', strtotime($akhir))) ?></p></div>
@@ -138,7 +139,7 @@ $schoolContacts = array_filter([$schoolSettings['school_phone'], $schoolSettings
         </div>
         <footer class="report-foot">
             <span>Dicetak pada <?= e(date('d/m/Y H:i')) ?> · <?= e($schoolSettings['school_name']) ?></span>
-            <div class="signature"><div>Mengetahui,</div><div class="signature-space"></div><div class="signature-label">( __________________ )</div></div>
+            <div class="signature"><div>Mengetahui,</div><div class="signature-space"></div><div class="signature-label">( <?= e($schoolSettings['principal_name'] ?: '__________________') ?> )</div></div>
         </footer>
     </main>
     <nav class="toolbar" aria-label="Aksi laporan">

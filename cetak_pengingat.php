@@ -12,7 +12,7 @@ try {
 }
 $result = fetch_payment_reminders($conn, $filters['status'], $filters['search'], $filters['days_ahead'], 1, null);
 $schoolSettings = fetch_school_settings($conn);
-$schoolContacts = array_filter([$schoolSettings['school_phone'], $schoolSettings['school_email']]);
+$schoolContacts = array_filter([$schoolSettings['school_phone'], $schoolSettings['school_email'], $schoolSettings['school_website']]);
 $statusLabels = [
     'overdue' => 'Tunggakan terlambat',
     'upcoming' => 'Jatuh tempo dalam ' . $filters['days_ahead'] . ' hari',
@@ -33,7 +33,7 @@ $statusLabels = [
         .report-head { display: flex; align-items: center; gap: 14px; padding-bottom: 20px; border-bottom: 2px solid var(--forest); }
         .report-head img { width: 54px; height: 54px; object-fit: contain; }
         .school-name { margin: 0; color: var(--forest); font-size: 15px; font-weight: 800; }
-        .school-contact { margin: 4px 0 0; color: var(--muted); font-size: 9px; }
+        .school-contact { margin: 4px 0 0; color: var(--muted); font-size: 9px; overflow-wrap: anywhere; }
         .report-title { margin-left: auto; text-align: right; }
         .report-title h1 { margin: 0; font-family: Georgia,serif; font-size: 22px; font-weight: 500; }
         .report-title p { margin: 6px 0 0; color: var(--muted); font-size: 10px; }
@@ -78,6 +78,7 @@ $statusLabels = [
             <div>
                 <p class="school-name"><?= e($schoolSettings['school_name']) ?></p>
                 <?php if ($schoolSettings['school_address']): ?><p class="school-contact"><?= e($schoolSettings['school_address']) ?></p><?php endif; ?>
+                <?php if ($schoolSettings['school_npsn']): ?><p class="school-contact">NPSN <?= e($schoolSettings['school_npsn']) ?></p><?php endif; ?>
                 <?php if ($schoolContacts): ?><p class="school-contact"><?= e(implode(' · ', $schoolContacts)) ?></p><?php endif; ?>
             </div>
             <div class="report-title"><h1>Pengingat pembayaran SPP</h1><p><?= e($statusLabels[$filters['status']]) ?> · Dicetak <?= e(date('d/m/Y H:i')) ?></p></div>
