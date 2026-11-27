@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/app.php';
 include __DIR__ . '/koneksi.php';
+$schoolSettings = fetch_school_settings($conn);
 
 if (isset($_SESSION['admin'])) {
     header('Location: index.php');
@@ -57,23 +58,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#153a3a">
-    <title>Masuk | Portal Pembayaran Sekolah</title>
+    <title>Masuk | <?= e($schoolSettings['school_name']) ?></title>
     <link rel="icon" href="img/logo-spp.svg" type="image/svg+xml">
     <link rel="stylesheet" href="css/sb-admin-2.min.css">
-    <link rel="stylesheet" href="css/modern.css">
+    <link rel="stylesheet" href="css/modern.css?v=<?= (int) filemtime(__DIR__ . '/css/modern.css') ?>">
 </head>
 <body>
 <main class="login-page">
     <div class="login-shell">
         <section class="login-brand-panel">
             <a class="brand-lockup" href="loginauth.php">
-                <img class="brand-mark" src="img/logo-spp.svg" alt="">
-                <span class="brand-copy"><strong>PORTAL SPP</strong><small>SEKOLAH · KEUANGAN</small></span>
+                <img class="brand-mark" src="school-logo.php?v=<?= (int) strtotime($schoolSettings['updated_at']) ?>" alt="">
+                <span class="brand-copy"><strong><?= e($schoolSettings['school_name']) ?></strong><small>KEUANGAN SEKOLAH</small></span>
             </a>
-            <div>
+            <div class="login-intro">
                 <span class="eyebrow">RUANG KERJA SEKOLAH</span>
                 <h1>Keuangan sekolah, lebih teratur.</h1>
-                <p>Pantau pembayaran, kelola data siswa, dan layani kebutuhan administrasi dari satu tempat.</p>
+                <p>Pembayaran, data siswa, dan laporan sekolah dalam satu ruang kerja yang aman.</p>
             </div>
             <svg class="login-art" viewBox="0 0 360 150" fill="none" aria-hidden="true">
                 <path d="M7 133h346" stroke="rgba(220,244,231,.18)"/>
@@ -89,11 +90,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
             <div class="login-brand-note">AMAN · RINGKAS · TERPUSAT &nbsp;·&nbsp; <?= date('Y') ?></div>
         </section>
         <section class="login-form-panel">
-            <span class="eyebrow">SELAMAT DATANG KEMBALI</span>
-            <h2>Masuk ke akun</h2>
-            <p>Gunakan akun administrator atau kasir untuk melanjutkan.</p>
+            <div class="login-form-heading">
+                <span class="login-access-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/></svg></span>
+                <span class="eyebrow">AKSES PETUGAS SEKOLAH</span>
+            </div>
+            <h2>Selamat datang kembali</h2>
+            <p>Masuk menggunakan akun administrator atau kasir.</p>
             <?php if (isset($_GET['expired'])): ?>
-                <div class="login-error" role="status">Sesi Anda berakhir. Silakan masuk kembali.</div>
+                <div class="login-error login-warning" role="status">Sesi Anda berakhir. Silakan masuk kembali.</div>
             <?php endif; ?>
             <?php if ($loginError !== ''): ?>
                 <div class="login-error" role="alert"><?= e($loginError) ?></div>
@@ -101,17 +105,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
             <form method="post" action="loginauth.php">
                 <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                 <label for="login-user">Username</label>
-                <input id="login-user" class="form-control" type="text" name="user" autocomplete="username" required autofocus>
+                <input id="login-user" class="form-control" type="text" name="user" autocomplete="username" placeholder="Masukkan username" required autofocus>
                 <label for="login-password">Password</label>
                 <div class="password-field">
-                    <input id="login-password" class="form-control" type="password" name="pass" autocomplete="current-password" required>
-                    <button class="password-toggle" type="button" data-password-toggle="login-password" aria-label="Tampilkan password" aria-pressed="false">Lihat</button>
+                    <input id="login-password" class="form-control" type="password" name="pass" autocomplete="current-password" placeholder="Masukkan password" required>
+                    <button class="password-toggle" type="button" data-password-toggle="login-password" aria-label="Tampilkan password" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/></svg><span data-password-label>Lihat</span></button>
                 </div>
                 <button type="submit" name="login" class="btn btn-primary">Masuk ke dashboard <span aria-hidden="true">→</span></button>
             </form>
+            <div class="login-security-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 19 6v5c0 5-3 8-7 10-4-2-7-5-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></svg><span>Akses terbatas untuk petugas sekolah. Jangan bagikan password Anda.</span></div>
         </section>
     </div>
 </main>
-<script src="js/app.js" defer></script>
+<script src="js/app.js?v=<?= (int) filemtime(__DIR__ . '/js/app.js') ?>" defer></script>
 </body>
 </html>

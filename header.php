@@ -12,7 +12,9 @@ $pageInfo = [
     'editdatajurusan.php' => ['Kelola jurusan', 'Atur program dan jurusan sekolah.'],
     'editdataangkatan.php' => ['Kelola angkatan', 'Atur tahun angkatan dan nominal SPP.'],
     'laporan.php' => ['Laporan', 'Pilih periode dan cetak rekap pembayaran.'],
+    'pengingat.php' => ['Pengingat pembayaran', 'Tinjau tunggakan dan jadwal jatuh tempo.'],
     'adminedit.php' => ['Pengaturan akun', 'Perbarui informasi dan password akun Anda.'],
+    'identitassekolah.php' => ['Identitas sekolah', 'Atur nama, logo, dan informasi kontak sekolah.'],
     'adminusers.php' => ['Pengguna', 'Kelola akun administrator dan kasir.'],
     'auditlog.php' => ['Aktivitas', 'Tinjau perubahan dan transaksi yang tercatat.'],
 ];
@@ -20,6 +22,7 @@ $pageInfo = [
 $adminName = (string) ($_SESSION['nama_admin'] ?? 'Administrator');
 $adminId = (int) $_SESSION['admin'];
 $isAdmin = (string) ($_SESSION['role'] ?? '') === 'admin';
+$schoolSettings = fetch_school_settings($conn);
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -31,14 +34,14 @@ $isAdmin = (string) ($_SESSION['role'] ?? '') === 'admin';
     <title><?= e($pageTitle) ?> | SPP</title>
     <link rel="icon" href="img/logo-spp.svg" type="image/svg+xml">
     <link rel="stylesheet" href="css/sb-admin-2.min.css">
-    <link rel="stylesheet" href="css/modern.css">
+    <link rel="stylesheet" href="css/modern.css?v=<?= (int) filemtime(__DIR__ . '/css/modern.css') ?>">
 </head>
 <body class="app-body">
 <div class="app-shell">
     <aside class="app-sidebar" id="appSidebar">
         <a class="brand-lockup" href="index.php" aria-label="Portal SPP, ke ringkasan">
-        <img class="brand-mark" src="img/logo-spp.svg" alt="">
-        <span class="brand-copy"><strong>PORTAL SPP</strong><small>SEKOLAH · KEUANGAN</small></span>
+        <img class="brand-mark" src="school-logo.php?v=<?= (int) strtotime($schoolSettings['updated_at']) ?>" alt="">
+        <span class="brand-copy"><strong><?= e($schoolSettings['school_name']) ?></strong><small>PORTAL · KEUANGAN</small></span>
         </a>
         <div class="sidebar-caption">MENU UTAMA</div>
         <nav class="side-nav" aria-label="Navigasi utama">
@@ -52,9 +55,11 @@ $isAdmin = (string) ($_SESSION['role'] ?? '') === 'admin';
                 <a class="side-link <?= $currentPage === 'editdatajurusan.php' ? 'is-active' : '' ?>" href="editdatajurusan.php"><svg class="side-icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 9-9 9-9-9 9-9Z"/><circle cx="12" cy="12" r="2"/></svg><span>Jurusan</span></a>
                 <a class="side-link <?= $currentPage === 'editdataangkatan.php' ? 'is-active' : '' ?>" href="editdataangkatan.php"><svg class="side-icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Angkatan &amp; biaya</span></a>
                 <a class="side-link <?= $currentPage === 'adminusers.php' ? 'is-active' : '' ?>" href="adminusers.php"><svg class="side-icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0m2-11a3 3 0 0 1 0 6m1 2a5 5 0 0 1 3 3"/></svg><span>Pengguna</span></a>
+                <a class="side-link <?= $currentPage === 'identitassekolah.php' ? 'is-active' : '' ?>" href="identitassekolah.php"><svg class="side-icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 10h.01M15 10h.01M9 14h.01M15 14h.01M10 21v-4h4v4"/></svg><span>Identitas sekolah</span></a>
                 <a class="side-link <?= $currentPage === 'auditlog.php' ? 'is-active' : '' ?>" href="auditlog.php"><svg class="side-icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h12M9 12h12M9 18h12M3 6h.01M3 12h.01M3 18h.01"/></svg><span>Aktivitas</span></a>
             <?php endif; ?>
             <div class="sidebar-caption sidebar-caption-spaced">LAINNYA</div>
+            <a class="side-link <?= $currentPage === 'pengingat.php' ? 'is-active' : '' ?>" href="pengingat.php"><svg class="side-icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Pengingat</span></a>
             <a class="side-link <?= $currentPage === 'laporan.php' ? 'is-active' : '' ?>" href="laporan.php"><svg class="side-icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V4m0 16h17M8 16v-5m5 5V7m5 9V9"/></svg><span>Laporan</span></a>
         </nav>
         <div class="sidebar-foot">
@@ -65,7 +70,7 @@ $isAdmin = (string) ($_SESSION['role'] ?? '') === 'admin';
 
     <div class="app-main">
         <header class="app-topbar">
-            <button type="button" class="icon-button mobile-menu" data-sidebar-toggle aria-label="Buka navigasi"><span>☰</span></button>
+            <button type="button" class="icon-button mobile-menu" data-sidebar-toggle aria-label="Buka navigasi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
             <div class="topbar-context"><span class="eyebrow">PORTAL KEUANGAN SEKOLAH</span><span class="topbar-date"><?= date('d/m/Y') ?></span></div>
             <div class="topbar-account">
                 <a class="account-copy" href="adminedit.php"><strong><?= e($adminName) ?></strong><small><?= $isAdmin ? 'Administrator · Pengaturan akun' : 'Kasir · Pengaturan akun' ?></small></a>

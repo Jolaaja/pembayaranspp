@@ -7,6 +7,6 @@
     </div>
 </div>
 <div class="sidebar-scrim" data-sidebar-close></div>
-<script src="js/app.js" defer></script>
+<script src="js/app.js?v=<?= (int) filemtime(__DIR__ . '/js/app.js') ?>" defer></script>
 </body>
 </html>

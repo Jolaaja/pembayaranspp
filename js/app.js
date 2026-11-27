@@ -35,7 +35,12 @@
             if (passwordInput) {
                 var showPassword = passwordInput.type === 'password';
                 passwordInput.type = showPassword ? 'text' : 'password';
-                passwordToggle.textContent = showPassword ? 'Sembunyikan' : 'Lihat';
+                var passwordLabel = passwordToggle.querySelector('[data-password-label]');
+                if (passwordLabel) {
+                    passwordLabel.textContent = showPassword ? 'Sembunyikan' : 'Lihat';
+                } else {
+                    passwordToggle.textContent = showPassword ? 'Sembunyikan' : 'Lihat';
+                }
                 passwordToggle.setAttribute('aria-label', showPassword ? 'Sembunyikan password' : 'Tampilkan password');
                 passwordToggle.setAttribute('aria-pressed', showPassword ? 'true' : 'false');
             }
@@ -268,6 +273,19 @@
             if (previewUrl) URL.revokeObjectURL(previewUrl);
             previewUrl = URL.createObjectURL(file);
             profileAvatarPreview.src = previewUrl;
+        });
+    }
+
+    var schoolLogoInput = document.querySelector('[data-school-logo-input]');
+    var schoolLogoPreview = document.querySelector('[data-school-logo-preview]');
+    if (schoolLogoInput && schoolLogoPreview) {
+        var schoolLogoPreviewUrl = null;
+        schoolLogoInput.addEventListener('change', function () {
+            var file = schoolLogoInput.files && schoolLogoInput.files[0];
+            if (!file || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) return;
+            if (schoolLogoPreviewUrl) URL.revokeObjectURL(schoolLogoPreviewUrl);
+            schoolLogoPreviewUrl = URL.createObjectURL(file);
+            schoolLogoPreview.src = schoolLogoPreviewUrl;
         });
     }
 }());

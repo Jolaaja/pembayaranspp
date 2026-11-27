@@ -106,7 +106,7 @@ include __DIR__ . '/header.php';
             </ol>
             <?php if (!$hasEvents): ?>
                 <div class="payment-history-empty">
-                    <span class="empty-state-icon" aria-hidden="true">⌁</span>
+                    <span class="empty-state-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
                     <strong>Belum ada aktivitas</strong>
                     <p>Riwayat akan muncul di sini setelah pembayaran diproses.</p>
                 </div>

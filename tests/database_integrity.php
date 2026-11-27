@@ -41,6 +41,9 @@ expect_column_type($conn, 'pembayaran', 'jatuhtempo', 'date');
 expect_column_type($conn, 'pembayaran', 'tglbayar', 'date');
 expect_column_type($conn, 'admin', 'gender', 'enum');
 expect_column_type($conn, 'admin', 'profile_photo', 'mediumblob');
+expect_column_type($conn, 'school_settings', 'logo_data', 'mediumblob');
+$schoolSettings = fetch_school_settings($conn);
+expect_true(trim($schoolSettings['school_name']) !== '', 'Pengaturan sekolah harus memiliki nama yang dapat digunakan.');
 
 $adminId = (int) $admin['id_admin'];
 $_SESSION['admin'] = $adminId;
@@ -95,6 +98,31 @@ try {
     $dueDate = date('Y-m-d', strtotime('-1 day'));
     db_execute($conn, 'INSERT INTO pembayaran (id_siswa, jatuhtempo, bulan, jumlah) VALUES (?, ?, ?, ?)', 'isss', [$studentId, $dueDate, 'Januari 2026', '98765.43']);
     $paymentId = mysqli_insert_id($conn);
+    $overdueReminders = fetch_payment_reminders($conn, 'overdue', $nisn, 7, 1);
+    expect_true(
+        $overdueReminders['total'] === 1
+            && (int) $overdueReminders['rows'][0]['idspp'] === $paymentId
+            && (float) $overdueReminders['amount'] === 98765.43,
+        'Daftar pengingat harus menyaring tunggakan siswa dan menghitung nominalnya.'
+    );
+    $upcomingDueDate = date('Y-m-d', strtotime('+5 days'));
+    db_execute($conn, 'INSERT INTO pembayaran (id_siswa, jatuhtempo, bulan, jumlah) VALUES (?, ?, ?, ?)', 'isss', [$studentId, $upcomingDueDate, 'Februari 2026', '98765.43']);
+    $upcomingPaymentId = mysqli_insert_id($conn);
+    $upcomingReminders = fetch_payment_reminders($conn, 'upcoming', $nisn, 7, 1);
+    expect_true(
+        $upcomingReminders['total'] === 1
+            && (int) $upcomingReminders['rows'][0]['idspp'] === $upcomingPaymentId,
+        'Pengingat jatuh tempo harus memasukkan jadwal dalam rentang yang dipilih.'
+    );
+    $allReminders = fetch_payment_reminders($conn, 'all', $nisn, 7, 2, 1);
+    expect_true($allReminders['total'] === 2 && $allReminders['page'] === 2 && count($allReminders['rows']) === 1, 'Pengingat harus membatasi halaman tanpa kehilangan total hasil.');
+    $invalidReminderFiltersRejected = false;
+    try {
+        parse_payment_reminder_filters(['jenis' => 'unknown', 'hari' => '999', 'page' => '1']);
+    } catch (InvalidArgumentException $error) {
+        $invalidReminderFiltersRejected = true;
+    }
+    expect_true($invalidReminderFiltersRejected, 'Filter pengingat di luar batas harus ditolak.');
 
     $foreignKeyRejected = false;
     try {

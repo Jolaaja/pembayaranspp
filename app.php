@@ -93,6 +93,68 @@ function normalize_profile_photo(array $upload): string
     }
 }
 
+function validate_school_logo(array $upload): array
+{
+    $error = (int) ($upload['error'] ?? UPLOAD_ERR_NO_FILE);
+    if ($error !== UPLOAD_ERR_OK) {
+        throw new InvalidArgumentException($error === UPLOAD_ERR_NO_FILE
+            ? 'Pilih logo terlebih dahulu.'
+            : 'Logo gagal diunggah. Pilih file lain dan coba lagi.');
+    }
+
+    $temporaryPath = (string) ($upload['tmp_name'] ?? '');
+    $size = (int) ($upload['size'] ?? 0);
+    if ($temporaryPath === '' || !is_uploaded_file($temporaryPath)) {
+        throw new InvalidArgumentException('File logo tidak valid.');
+    }
+    if ($size < 1 || $size > 2 * 1024 * 1024) {
+        throw new InvalidArgumentException('Ukuran logo maksimal 2 MB.');
+    }
+    if (!extension_loaded('gd')) {
+        throw new RuntimeException('Fitur validasi logo memerlukan ekstensi GD.');
+    }
+
+    $fileInfo = new finfo(FILEINFO_MIME_TYPE);
+    $mime = $fileInfo->file($temporaryPath);
+    if (!in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true)) {
+        throw new InvalidArgumentException('Format logo harus JPG, PNG, atau WebP.');
+    }
+
+    $imageInfo = getimagesize($temporaryPath);
+    if ($imageInfo === false || $imageInfo['mime'] !== $mime
+        || $imageInfo[0] < 1 || $imageInfo[1] < 1
+        || $imageInfo[0] > 4000 || $imageInfo[1] > 4000
+        || $imageInfo[0] * $imageInfo[1] > 8000000) {
+        throw new InvalidArgumentException('Dimensi logo terlalu besar atau file tidak dapat dibaca.');
+    }
+
+    $contents = file_get_contents($temporaryPath);
+    if ($contents === false) {
+        throw new RuntimeException('Logo tidak dapat dibaca.');
+    }
+    $image = @imagecreatefromstring($contents);
+    if ($image === false) {
+        throw new InvalidArgumentException('File logo tidak dapat diproses.');
+    }
+    imagedestroy($image);
+
+    return ['data' => $contents, 'mime' => $mime];
+}
+
+function fetch_school_settings(mysqli $conn): array
+{
+    $result = mysqli_query(
+        $conn,
+        'SELECT school_name, school_address, school_phone, school_email, logo_mime, updated_at
+         FROM school_settings WHERE settings_id = 1'
+    );
+    $settings = mysqli_fetch_assoc($result);
+    if (!$settings) {
+        throw new RuntimeException('Pengaturan sekolah belum tersedia. Jalankan migrasi database terbaru.');
+    }
+    return $settings;
+}
+
 function require_login(): void
 {
     if (!isset($_SESSION['admin'])) {
@@ -286,6 +348,110 @@ function fetch_student_page(
         'page' => $page,
         'last_page' => $lastPage,
         'per_page' => $perPage,
+    ];
+}
+
+function fetch_payment_reminders(
+    mysqli $conn,
+    string $status,
+    string $search,
+    int $daysAhead,
+    int $page,
+    ?int $perPage = 25
+): array {
+    if (!in_array($status, ['overdue', 'upcoming', 'all'], true)) {
+        throw new InvalidArgumentException('Jenis pengingat pembayaran tidak valid.');
+    }
+    if ($daysAhead < 1 || $daysAhead > 30 || $page < 1
+        || ($perPage !== null && ($perPage < 1 || $perPage > 100))) {
+        throw new InvalidArgumentException('Rentang pengingat atau halaman tidak valid.');
+    }
+
+    $where = "s.status = 'aktif' AND p.ket IS NULL";
+    $types = '';
+    $params = [];
+    if ($status === 'overdue') {
+        $where .= ' AND p.jatuhtempo < CURDATE()';
+    } elseif ($status === 'upcoming') {
+        $dueThrough = (new DateTimeImmutable('today'))->modify('+' . $daysAhead . ' days')->format('Y-m-d');
+        $where .= ' AND p.jatuhtempo BETWEEN CURDATE() AND ?';
+        $types .= 's';
+        $params[] = $dueThrough;
+    }
+    if ($search !== '') {
+        $like = '%' . addcslashes($search, "\\_%") . '%';
+        $where .= ' AND (s.nisn LIKE ? OR s.nama LIKE ? OR k.nama_kelas LIKE ?)';
+        $types .= 'sss';
+        array_push($params, $like, $like, $like);
+    }
+
+    $fromSql = 'FROM pembayaran p
+        JOIN siswa s ON s.id_siswa = p.id_siswa
+        JOIN kelas k ON k.id_kelas = s.id_kelas
+        WHERE ' . $where;
+    $summaryStmt = db_execute(
+        $conn,
+        'SELECT COUNT(*) AS total, COALESCE(SUM(p.jumlah), 0) AS amount ' . $fromSql,
+        $types,
+        $params
+    );
+    $summary = mysqli_fetch_assoc(mysqli_stmt_get_result($summaryStmt));
+    mysqli_stmt_close($summaryStmt);
+
+    $total = (int) ($summary['total'] ?? 0);
+    $lastPage = $perPage === null ? 1 : max(1, (int) ceil($total / $perPage));
+    $page = min($page, $lastPage);
+    $rowsSql = 'SELECT p.idspp, p.bulan, p.jumlah, p.jatuhtempo,
+                       s.id_siswa, s.nisn, s.nama, k.nama_kelas
+                ' . $fromSql . '
+                ORDER BY p.jatuhtempo ASC, s.nama ASC, p.idspp ASC';
+    $rowsParams = $params;
+    if ($perPage !== null) {
+        $rowsSql .= ' LIMIT ? OFFSET ?';
+        $types .= 'ii';
+        array_push($rowsParams, $perPage, ($page - 1) * $perPage);
+    }
+    $rowsStmt = db_execute(
+        $conn,
+        $rowsSql,
+        $types,
+        $rowsParams
+    );
+    $result = mysqli_stmt_get_result($rowsStmt);
+    $rows = [];
+    while ($row = mysqli_fetch_assoc($result)) {
+        $rows[] = $row;
+    }
+    mysqli_stmt_close($rowsStmt);
+
+    return [
+        'rows' => $rows,
+        'total' => $total,
+        'amount' => (float) ($summary['amount'] ?? 0),
+        'page' => $page,
+        'last_page' => $lastPage,
+        'per_page' => $perPage,
+    ];
+}
+
+function parse_payment_reminder_filters(array $query): array
+{
+    $status = $query['jenis'] ?? 'overdue';
+    $search = $query['q'] ?? '';
+    $daysAhead = filter_var($query['hari'] ?? '7', FILTER_VALIDATE_INT);
+    $page = filter_var($query['page'] ?? '1', FILTER_VALIDATE_INT);
+    if (!is_string($status) || !in_array($status, ['overdue', 'upcoming', 'all'], true)
+        || !is_string($search) || preg_match('/\A.{0,100}\z/us', $search) !== 1
+        || $daysAhead === false || $daysAhead < 1 || $daysAhead > 30
+        || $page === false || $page < 1) {
+        throw new InvalidArgumentException('Filter pengingat pembayaran tidak valid.');
+    }
+
+    return [
+        'status' => $status,
+        'search' => trim($search),
+        'days_ahead' => $daysAhead,
+        'page' => $page,
     ];
 }
 

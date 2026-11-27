@@ -70,7 +70,7 @@ include __DIR__ . '/header.php';
                         <td><?= e($student['nama_angkatan']) ?></td>
                     </tr>
                 <?php endwhile; if (!$hasStudents): ?>
-                    <tr><td colspan="4"><div class="directory-empty"><span class="empty-state-icon">♙</span><strong><?= $search === '' ? 'Belum ada siswa aktif' : 'Siswa tidak ditemukan' ?></strong><p><?= $search === '' ? 'Siswa yang terdaftar akan tampil di direktori ini.' : 'Ubah kata pencarian atau periksa kembali filter.' ?></p></div></td></tr>
+                    <tr><td colspan="4"><div class="directory-empty"><span class="empty-state-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0m2-11a3 3 0 0 1 0 6m1 2a5 5 0 0 1 3 3"/></svg></span><strong><?= $search === '' ? 'Belum ada siswa aktif' : 'Siswa tidak ditemukan' ?></strong><p><?= $search === '' ? 'Siswa yang terdaftar akan tampil di direktori ini.' : 'Ubah kata pencarian atau periksa kembali filter.' ?></p></div></td></tr>
                 <?php endif; ?>
                 </tbody>
             </table>

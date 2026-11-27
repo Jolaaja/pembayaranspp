@@ -32,6 +32,8 @@ while ($row = mysqli_fetch_assoc($result)) {
 }
 mysqli_stmt_close($stmt);
 $count = count($rows);
+$schoolSettings = fetch_school_settings($conn);
+$schoolContacts = array_filter([$schoolSettings['school_phone'], $schoolSettings['school_email']]);
 ?>
 <!doctype html>
 <html lang="id">
@@ -99,8 +101,12 @@ $count = count($rows);
 <body>
     <main class="report">
         <header class="report-head">
-            <img src="img/logo-spp.svg" alt="">
-            <div><p class="brand-name">PORTAL SPP</p><p class="brand-caption">Administrasi keuangan sekolah</p></div>
+            <img src="school-logo.php?v=<?= (int) strtotime($schoolSettings['updated_at']) ?>" alt="">
+            <div>
+                <p class="brand-name"><?= e($schoolSettings['school_name']) ?></p>
+                <p class="brand-caption"><?= e($schoolSettings['school_address'] ?: 'Administrasi keuangan sekolah') ?></p>
+                <?php if ($schoolContacts): ?><p class="brand-caption"><?= e(implode(' · ', $schoolContacts)) ?></p><?php endif; ?>
+            </div>
             <div class="report-title"><h1>Laporan pembayaran</h1><p><?= e(date('d/m/Y', strtotime($awal))) ?> – <?= e(date('d/m/Y', strtotime($akhir))) ?></p></div>
         </header>
         <section class="report-summary" aria-label="Ringkasan laporan">
@@ -131,7 +137,7 @@ $count = count($rows);
             </table>
         </div>
         <footer class="report-foot">
-            <span>Dicetak pada <?= e(date('d/m/Y H:i')) ?> · Portal SPP</span>
+            <span>Dicetak pada <?= e(date('d/m/Y H:i')) ?> · <?= e($schoolSettings['school_name']) ?></span>
             <div class="signature"><div>Mengetahui,</div><div class="signature-space"></div><div class="signature-label">( __________________ )</div></div>
         </footer>
     </main>

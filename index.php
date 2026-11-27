@@ -141,7 +141,7 @@ include __DIR__ . '/header.php';
             <div class="stat-top"><span class="stat-icon stat-icon-rose"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.8 20h18.4L12 3Z"/><path d="M12 9v5m0 3h.01"/></svg></span><span class="stat-tag">PERLU TINDAKAN</span></div>
             <div class="stat-label">Jadwal terlambat</div>
             <div class="stat-value"><?= number_format((int) $overdueRow['total'], 0, ',', '.') ?><span class="stat-unit">tagihan</span></div>
-            <div class="stat-foot">Total <?= format_rupiah((float) $overdueRow['amount']) ?> belum dibayar</div>
+            <div class="stat-foot"><span>Total <?= format_rupiah((float) $overdueRow['amount']) ?> belum dibayar</span><a class="stat-foot-link" href="pengingat.php?jenis=overdue">Lihat daftar</a></div>
         </div>
     </article>
 </div>
@@ -193,7 +193,7 @@ include __DIR__ . '/header.php';
                     </div>
                 <?php endwhile; if (!$hasRecent): ?>
                     <div class="dashboard-empty-state">
-                        <span class="empty-state-icon">₊</span>
+                        <span class="empty-state-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 10h18m-13 5h4"/></svg></span>
                         <strong>Belum ada transaksi</strong>
                         <p>Pembayaran yang sudah dikonfirmasi akan muncul di sini.</p>
                     </div>
@@ -209,8 +209,8 @@ include __DIR__ . '/header.php';
         <div><strong>Administrasi rapi, layanan lebih baik.</strong><p>Kelola pembayaran dan pantau tunggakan dari satu tempat.</p></div>
     </div>
     <div class="quick-actions">
-        <a href="datasiswa.php"><span>♙</span>Lihat siswa</a>
-        <a href="laporan.php"><span>▤</span>Buat laporan</a>
+        <a href="datasiswa.php"><span class="quick-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0m2-11a3 3 0 0 1 0 6m1 2a5 5 0 0 1 3 3"/></svg></span>Lihat siswa</a>
+        <a href="laporan.php"><span class="quick-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 20V4m0 16h17M8 16v-5m5 5V7m5 9V9"/></svg></span>Buat laporan</a>
     </div>
 </section>
 <?php include __DIR__ . '/footer.php'; ?>

@@ -28,7 +28,9 @@ if (!$data) {
     exit('Data pembayaran tidak ditemukan.');
 }
 
+$schoolSettings = fetch_school_settings($conn);
 $receiptNumber = $data['nobayar'] ?: 'SPP-' . str_pad((string) $data['idspp'], 8, '0', STR_PAD_LEFT);
+$schoolContacts = array_filter([$schoolSettings['school_phone'], $schoolSettings['school_email']]);
 ?>
 <!doctype html>
 <html lang="id">
@@ -94,8 +96,12 @@ $receiptNumber = $data['nobayar'] ?: 'SPP-' . str_pad((string) $data['idspp'], 8
 <body>
     <main class="receipt">
         <header class="receipt-head">
-            <img src="img/logo-spp.svg" alt="">
-            <div><p class="brand-name">PORTAL SPP</p><p class="brand-caption">Administrasi keuangan sekolah</p></div>
+            <img src="school-logo.php?v=<?= (int) strtotime($schoolSettings['updated_at']) ?>" alt="">
+            <div>
+                <p class="brand-name"><?= e($schoolSettings['school_name']) ?></p>
+                <p class="brand-caption"><?= e($schoolSettings['school_address'] ?: 'Administrasi keuangan sekolah') ?></p>
+                <?php if ($schoolContacts): ?><p class="brand-caption"><?= e(implode(' · ', $schoolContacts)) ?></p><?php endif; ?>
+            </div>
             <div class="document-title"><strong>BUKTI PEMBAYARAN</strong><small>TAHUN AJARAN <?= e(substr((string) $data['bulan'], -4)) ?></small></div>
         </header>
         <section class="receipt-content">

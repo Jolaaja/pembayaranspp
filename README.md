@@ -29,7 +29,9 @@ Identitas Portal SPP memakai logo vektor lokal di `img/logo-spp.svg`.
    Migrasi `003_financial_integrity.sql` mengubah nominal menjadi `DECIMAL`,
    tanggal menjadi `DATE`, menambah role, arsip siswa, foreign key, audit log,
    dan riwayat pembayaran. Migrasi `004_profile_appearance.sql` menambahkan
-   preferensi avatar gender dan penyimpanan foto profil. Pemeriksaan awal
+   preferensi avatar gender dan penyimpanan foto profil. Migrasi
+   `005_school_identity.sql` menyiapkan identitas sekolah yang dapat diatur,
+   termasuk logo raster yang divalidasi. Pemeriksaan awal
    menghentikan migrasi finansial jika menemukan data lama yang invalid atau
    duplikat; perbaiki data atau pulihkan backup terlebih dahulu. Migrasi tidak
    menghapus data lama.
@@ -72,6 +74,13 @@ skema ke database yang sudah berisi data.
   bulan berjalan, semester berjalan, atau enam bulan terakhir. Direktori dan
   tabel dilengkapi pencarian, pengurutan, serta halaman navigasi; jadwal
   pembayaran beradaptasi menjadi kartu pada layar kecil.
+- Menu Pengingat menampilkan tagihan terlambat, jadwal jatuh tempo mendatang,
+  dan tagihan aktif yang belum lunas. Daftar dapat dicari, dicetak, dan diekspor
+  ke CSV untuk tindak lanjut petugas.
+- Admin dapat mengatur nama, logo, alamat, telepon, dan email sekolah. Identitas
+  tersebut digunakan pada halaman login, navigasi, slip pembayaran, dan laporan
+  cetak. Pengingat tersedia di aplikasi; pengiriman WhatsApp memerlukan layanan
+  eksternal dan belum diaktifkan.
 - Status pembayaran, notifikasi, dan fokus keyboard menggunakan penanda visual
   yang konsisten dan mudah dibedakan.
 - Laporan dapat difilter berdasarkan rentang tanggal, menampilkan rekap kelas,

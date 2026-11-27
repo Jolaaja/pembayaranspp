@@ -64,7 +64,7 @@ include __DIR__ . '/header.php';
 <?php if ($nisn !== '' && !$student): ?>
     <section class="card search-result-empty">
         <div class="card-body">
-            <span class="empty-state-icon">?</span>
+            <span class="empty-state-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg></span>
             <h2>Siswa tidak ditemukan</h2>
             <p>Periksa kembali NISN. Pastikan siswa masih aktif dan datanya sudah terdaftar.</p>
         </div>
