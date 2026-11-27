@@ -26,7 +26,7 @@ if ($output === false) {
     throw new RuntimeException('Tidak dapat menyiapkan file ekspor.');
 }
 fwrite($output, "\xEF\xBB\xBF");
-fputcsv($output, ['NISN', 'Nama siswa', 'Kelas', 'Periode SPP', 'Jatuh tempo', 'Status', 'Jumlah (Rp)'], ',', '"', '\\');
+fputcsv($output, ['NISN', 'Nama siswa', 'Kelas', 'Nomor HP orang tua/wali', 'Periode SPP', 'Jatuh tempo', 'Status', 'Jumlah (Rp)'], ',', '"', '\\');
 foreach ($result['rows'] as $row) {
     $daysUntil = (int) (new DateTimeImmutable('today'))->diff(new DateTimeImmutable($row['jatuhtempo']))->format('%r%a');
     $status = $daysUntil < 0
@@ -36,6 +36,7 @@ foreach ($result['rows'] as $row) {
         csv_safe_reminder_value($row['nisn']),
         csv_safe_reminder_value($row['nama']),
         csv_safe_reminder_value($row['nama_kelas']),
+        csv_safe_reminder_value($row['guardian_phone'] ?? ''),
         csv_safe_reminder_value($row['bulan']),
         $row['jatuhtempo'],
         csv_safe_reminder_value($status),

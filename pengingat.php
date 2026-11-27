@@ -67,7 +67,7 @@ include __DIR__ . '/header.php';
                     <option value="all" <?= $filters['status'] === 'all' ? 'selected' : '' ?>>Semua belum lunas</option>
                 </select>
             </div>
-            <div class="form-group">
+            <div class="form-group" data-reminder-days <?= $filters['status'] !== 'upcoming' ? 'hidden' : '' ?>>
                 <label for="reminder-days">Dalam berapa hari?</label>
                 <select id="reminder-days" class="form-control" name="hari">
                     <?php foreach ([3, 7, 14, 30] as $days): ?>
@@ -95,14 +95,46 @@ include __DIR__ . '/header.php';
                             : ($daysUntil === 0 ? 'Jatuh tempo hari ini' : 'Dalam ' . $daysUntil . ' hari');
                         $rowStatusClass = $daysUntil < 0 ? 'status-overdue' : 'status-pending';
                         $studentUrl = 'pembayaran.php?' . http_build_query(['nisn' => $row['nisn']]);
+                        $contactEditUrl = 'editdatasiswa.php?' . http_build_query(['q' => $row['nisn']]);
+                        $whatsappNumber = normalize_indonesian_mobile((string) ($row['guardian_phone'] ?? ''));
+                        $guardianName = trim((string) ($row['guardian_name'] ?? ''));
+                        $duePhrase = $daysUntil < 0 ? 'sudah melewati jatuh tempo pada ' : 'jatuh tempo pada ';
+                        $whatsappMessage = 'Yth. ' . ($guardianName !== '' ? $guardianName : 'Bapak/Ibu orang tua/wali')
+                            . ', kami mengingatkan bahwa tagihan SPP ' . $row['bulan'] . ' untuk ' . $row['nama']
+                            . ' sebesar ' . format_rupiah((float) $row['jumlah']) . ' ' . $duePhrase
+                            . date('d/m/Y', strtotime($row['jatuhtempo']))
+                            . '. Jika sudah dibayar, mohon abaikan pesan ini. Terima kasih.';
+                        $whatsappUrl = $whatsappNumber === null
+                            ? null
+                            : 'https://wa.me/' . rawurlencode(ltrim($whatsappNumber, '+')) . '?text=' . rawurlencode($whatsappMessage);
                         ?>
                         <tr>
-                            <td><div class="reminder-student"><span class="student-directory-mark"><?= e(strtoupper(substr($row['nama'], 0, 1))) ?></span><span><strong><?= e($row['nama']) ?></strong><small>NISN <?= e($row['nisn']) ?> · <?= e($row['nama_kelas']) ?></small></span></div></td>
+                            <td>
+                                <div class="reminder-student">
+                                    <span class="student-directory-mark"><?= e(strtoupper(substr($row['nama'], 0, 1))) ?></span>
+                                    <span>
+                                        <strong><?= e($row['nama']) ?></strong>
+                                        <small>NISN <?= e($row['nisn']) ?> · <?= e($row['nama_kelas']) ?></small>
+                                        <?php if ($row['guardian_phone']): ?>
+                                            <small>Wali: <?= e(trim((string) $row['guardian_name']) !== '' ? $row['guardian_name'] : 'Orang tua/wali') ?> · <?= e($row['guardian_phone']) ?></small>
+                                        <?php endif; ?>
+                                    </span>
+                                </div>
+                            </td>
                             <td><?= e($row['bulan']) ?></td>
                             <td><strong><?= e(date('d/m/Y', strtotime($row['jatuhtempo']))) ?></strong><small class="reminder-due-note"><?= e($dueLabel) ?></small></td>
                             <td><span class="status-chip <?= $rowStatusClass ?>"><span></span><?= $daysUntil < 0 ? 'Terlambat' : 'Belum lunas' ?></span></td>
                             <td class="reminder-amount"><?= format_rupiah((float) $row['jumlah']) ?></td>
-                            <td><a class="btn btn-secondary btn-sm" href="<?= e($studentUrl) ?>">Proses</a></td>
+                            <td><div class="reminder-row-actions">
+                                <a class="btn btn-secondary btn-sm" href="<?= e($studentUrl) ?>">Proses</a>
+                                <?php if ($whatsappUrl !== null): ?>
+                                    <a class="btn btn-success btn-sm" href="<?= e($whatsappUrl) ?>" target="_blank" rel="noopener noreferrer">WhatsApp</a>
+                                <?php elseif (($_SESSION['role'] ?? '') === 'admin'): ?>
+                                    <a class="reminder-contact-missing" href="<?= e($contactEditUrl) ?>">Isi kontak wali</a>
+                                <?php else: ?>
+                                    <span class="reminder-contact-missing">Minta admin isi kontak wali</span>
+                                <?php endif; ?>
+                            </div></td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>

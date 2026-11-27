@@ -4,27 +4,34 @@ require_login();
 include __DIR__ . '/function/function_rupiah.php';
 include __DIR__ . '/koneksi.php';
 
-$rawNisn = $_GET['nisn'] ?? '';
-$nisn = is_string($rawNisn) ? trim($rawNisn) : '';
+$rawSearch = $_GET['q'] ?? $_GET['nisn'] ?? '';
+if (!is_string($rawSearch) || preg_match('/\A.{0,100}\z/us', $rawSearch) !== 1) {
+    http_response_code(400);
+    exit('Pencarian siswa tidak valid.');
+}
+$search = trim($rawSearch);
 $student = null;
+$searchResults = [];
+$hasMoreMatches = false;
 $payments = [];
 $paidCount = 0;
 $paidTotal = 0.0;
 $pendingCount = 0;
 $overdueCount = 0;
 
-if ($nisn !== '') {
-    $studentStmt = db_execute(
-        $conn,
-        "SELECT s.id_siswa, s.nisn, s.nama, s.alamat, a.nama_angkatan, a.biaya, j.nama_jurusan, k.nama_kelas
-         FROM siswa s JOIN angkatan a ON a.id_angkatan = s.id_angkatan
-         JOIN jurusan j ON j.id_jurusan = s.id_jurusan
-         JOIN kelas k ON k.id_kelas = s.id_kelas
-         WHERE s.nisn = ? AND s.status = 'aktif' LIMIT 1",
-        's',
-        [$nisn]
-    );
-    $student = mysqli_fetch_assoc(mysqli_stmt_get_result($studentStmt));
+if ($search !== '') {
+    $searchResults = search_payment_students($conn, $search);
+    $hasMoreMatches = count($searchResults) > 10;
+    $searchResults = array_slice($searchResults, 0, 10);
+    foreach ($searchResults as $match) {
+        if ($match['nisn'] === $search) {
+            $student = $match;
+            break;
+        }
+    }
+    if (!$student && count($searchResults) === 1) {
+        $student = $searchResults[0];
+    }
 
     if ($student) {
         $paymentStmt = db_execute($conn, 'SELECT * FROM pembayaran WHERE id_siswa = ? ORDER BY jatuhtempo ASC', 'i', [(int) $student['id_siswa']]);
@@ -49,24 +56,47 @@ include __DIR__ . '/header.php';
 <section class="card payment-search-card">
     <div class="card-body">
         <form method="get" class="payment-search-form">
-            <label class="sr-only" for="student-search">Cari siswa dengan NISN</label>
+            <label class="sr-only" for="student-search">Cari siswa dengan nama atau NISN</label>
             <span class="payment-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg></span>
-            <input id="student-search" class="form-control" type="search" name="nisn" value="<?= e($nisn) ?>" placeholder="Masukkan NISN siswa untuk melihat jadwal SPP" maxlength="50" required>
+            <input id="student-search" class="form-control" type="search" name="q" value="<?= e($search) ?>" placeholder="Masukkan nama siswa atau NISN" maxlength="100" required>
             <button type="submit" class="btn btn-primary">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg>
                 Cari siswa
             </button>
         </form>
-        <p class="search-hint">Cari berdasarkan NISN aktif yang terdaftar di sekolah.</p>
+        <p class="search-hint">Cari berdasarkan nama atau NISN siswa aktif yang terdaftar.</p>
     </div>
 </section>
 
-<?php if ($nisn !== '' && !$student): ?>
+<?php if ($search !== '' && !$student && !$searchResults): ?>
     <section class="card search-result-empty">
         <div class="card-body">
             <span class="empty-state-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg></span>
             <h2>Siswa tidak ditemukan</h2>
-            <p>Periksa kembali NISN. Pastikan siswa masih aktif dan datanya sudah terdaftar.</p>
+            <p>Periksa kembali nama atau NISN. Pastikan siswa masih aktif dan datanya sudah terdaftar.</p>
+        </div>
+    </section>
+<?php elseif ($searchResults && !$student): ?>
+    <section class="card search-result-card">
+        <div class="card-header card-header-actions">
+            <div><h6>Hasil pencarian</h6><small><?= $hasMoreMatches ? 'Menampilkan 10 hasil pertama; tambahkan kata pencarian untuk mempersempit.' : 'Pilih siswa yang sesuai untuk membuka jadwal SPP.' ?></small></div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead><tr><th>Siswa</th><th>Kelas</th><th>Jurusan</th><th>Aksi</th></tr></thead>
+                    <tbody>
+                    <?php foreach ($searchResults as $match): ?>
+                        <tr>
+                            <td><strong><?= e($match['nama']) ?></strong><small class="d-block text-muted">NISN <?= e($match['nisn']) ?></small></td>
+                            <td><?= e($match['nama_kelas']) ?></td>
+                            <td><?= e($match['nama_jurusan']) ?></td>
+                            <td><a class="btn btn-primary btn-sm" href="pembayaran.php?nisn=<?= e(rawurlencode($match['nisn'])) ?>">Lihat jadwal</a></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </section>
 <?php elseif ($student): ?>
@@ -130,13 +160,12 @@ include __DIR__ . '/header.php';
                                             </form>
                                             <a class="btn btn-success btn-sm" href="cetak_slip_pembayaran.php?idspp=<?= (int) $payment['idspp'] ?>" target="_blank" rel="noopener">Slip</a>
                                         <?php else: ?>
-                                            <form method="post" action="proses_transaksi.php" onsubmit="return confirm('Konfirmasi pembayaran <?= e($payment['bulan']) ?>?')">
-                                                <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-                                                <input type="hidden" name="act" value="bayar">
-                                                <input type="hidden" name="id" value="<?= (int) $payment['idspp'] ?>">
-                                                <input type="hidden" name="nisn" value="<?= e($student['nisn']) ?>">
-                                                <button type="submit" class="btn btn-primary btn-sm">Proses</button>
-                                            </form>
+                                            <button type="button" class="btn btn-primary btn-sm" data-payment-confirm
+                                                data-payment-id="<?= (int) $payment['idspp'] ?>"
+                                                data-payment-nisn="<?= e($student['nisn']) ?>"
+                                                data-payment-student="<?= e($student['nama']) ?>"
+                                                data-payment-month="<?= e($payment['bulan']) ?>"
+                                                data-payment-amount="<?= e(format_rupiah((float) $payment['jumlah'])) ?>">Proses</button>
                                         <?php endif; ?>
                                         <a class="payment-history-link" href="riwayat_pembayaran.php?idspp=<?= (int) $payment['idspp'] ?>">Riwayat</a>
                                     </div>
@@ -152,7 +181,54 @@ include __DIR__ . '/header.php';
 <?php else: ?>
     <section class="payment-intro">
         <span class="payment-intro-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v17H6.5A2.5 2.5 0 0 1 4 17.5z"/><path d="M4 6h13M8 10h8m-8 4h6"/></svg></span>
-        <div><h2>Kelola pembayaran dengan mudah</h2><p>Masukkan NISN untuk melihat jadwal, status, dan riwayat pembayaran siswa.</p></div>
+        <div><h2>Kelola pembayaran dengan mudah</h2><p>Masukkan nama siswa atau NISN untuk melihat jadwal, status, dan riwayat pembayaran.</p></div>
     </section>
+<?php endif; ?>
+<?php if ($student): ?>
+<div class="modal fade" id="payment-confirmation-modal" tabindex="-1" aria-labelledby="payment-confirmation-title" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="payment-confirmation-title">Catat pembayaran</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup">×</button>
+            </div>
+            <div class="modal-body">
+                <p id="payment-confirmation-summary" class="form-intro" aria-live="polite"></p>
+                <form id="payment-confirmation-form" method="post" action="proses_transaksi.php">
+                    <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+                    <input type="hidden" name="act" value="bayar">
+                    <input type="hidden" name="id" id="payment-confirmation-id">
+                    <input type="hidden" name="nisn" id="payment-confirmation-nisn">
+                    <div class="form-group">
+                        <label for="payment-method">Metode pembayaran</label>
+                        <select id="payment-method" class="form-control" name="payment_method" required>
+                            <option value="" selected disabled>Pilih metode</option>
+                            <option value="cash">Tunai</option>
+                            <option value="bank_transfer">Transfer bank</option>
+                            <option value="qris">QRIS</option>
+                            <option value="other">Lainnya</option>
+                        </select>
+                    </div>
+                    <div class="form-group" data-payment-reference-field hidden>
+                        <label for="payment-reference">Referensi transfer / QRIS <span class="label-optional">opsional</span></label>
+                        <input id="payment-reference" class="form-control" type="text" name="payment_reference" maxlength="100" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="payment-date">Tanggal pembayaran</label>
+                        <input id="payment-date" class="form-control" type="date" name="payment_date" value="<?= e(date('Y-m-d')) ?>" max="<?= e(date('Y-m-d')) ?>" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="payment-note">Catatan <span class="label-optional">opsional</span></label>
+                        <textarea id="payment-note" class="form-control" name="payment_note" maxlength="255" rows="3" placeholder="Contoh: dibayar melalui rekening sekolah"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kembali</button>
+                <button type="submit" form="payment-confirmation-form" class="btn btn-primary">Konfirmasi pembayaran</button>
+            </div>
+        </div>
+    </div>
+</div>
 <?php endif; ?>
 <?php include __DIR__ . '/footer.php'; ?>

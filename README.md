@@ -31,7 +31,8 @@ Identitas Portal SPP memakai logo vektor lokal di `img/logo-spp.svg`.
    dan riwayat pembayaran. Migrasi `004_profile_appearance.sql` menambahkan
    preferensi avatar gender dan penyimpanan foto profil. Migrasi
    `005_school_identity.sql` menyiapkan identitas sekolah yang dapat diatur,
-   termasuk logo raster yang divalidasi. Pemeriksaan awal
+   termasuk logo raster yang divalidasi. `006_student_contacts_payment_details.sql`
+   menambahkan kontak orang tua/wali dan detail metode pembayaran. Pemeriksaan awal
    menghentikan migrasi finansial jika menemukan data lama yang invalid atau
    duplikat; perbaiki data atau pulihkan backup terlebih dahulu. Migrasi tidak
    menghapus data lama.
@@ -66,7 +67,8 @@ skema ke database yang sudah berisi data.
   menyimpan peristiwa reversal, bukan menghapus riwayat. Riwayat ditampilkan
   sebagai linimasa dengan status terkini dan tautan ke slip pembayaran.
 - Setiap siswa baru mendapat 36 jadwal SPP dengan jatuh tempo tanggal 10 mulai
-  bulan berjalan. Penghapusan siswa mengarsipkannya agar histori tetap tersedia.
+  bulan yang dipilih petugas. Formulir menampilkan pratinjau rentang jadwal.
+  Penghapusan siswa mengarsipkannya agar histori tetap tersedia.
 - Akun dapat memilih avatar default netral, perempuan, atau laki-laki, serta
   mengunggah foto profil JPG/PNG/WebP hingga 2 MB. Foto dipotong dan dinormalisasi
   menjadi JPEG, disimpan di database, dan hanya disajikan kepada pengguna login.
@@ -74,9 +76,16 @@ skema ke database yang sudah berisi data.
   bulan berjalan, semester berjalan, atau enam bulan terakhir. Direktori dan
   tabel dilengkapi pencarian, pengurutan, serta halaman navigasi; jadwal
   pembayaran beradaptasi menjadi kartu pada layar kecil.
+- Kasir dapat mencari jadwal siswa berdasarkan nama atau NISN, dan membuka
+  jadwal pembayaran langsung dari direktori siswa.
 - Menu Pengingat menampilkan tagihan terlambat, jadwal jatuh tempo mendatang,
   dan tagihan aktif yang belum lunas. Daftar dapat dicari, dicetak, dan diekspor
-  ke CSV untuk tindak lanjut petugas.
+  ke CSV untuk tindak lanjut petugas. Jika nomor wali tersedia, petugas dapat
+  membuka WhatsApp dengan pesan pengingat terisi dan meninjau/mengirimnya sendiri;
+  aplikasi tidak mengirim pesan otomatis.
+- Konfirmasi pembayaran mencatat metode (tunai, transfer bank, QRIS, atau
+  lainnya), tanggal pembayaran (hari ini atau tanggal lampau), referensi, dan
+  catatan opsional pada riwayat transaksi dan slip.
 - Admin dapat mengatur nama, logo, alamat, telepon, dan email sekolah. Identitas
   tersebut digunakan pada halaman login, navigasi, slip pembayaran, dan laporan
   cetak. Pengingat tersedia di aplikasi; pengiriman WhatsApp memerlukan layanan
@@ -91,6 +100,18 @@ skema ke database yang sudah berisi data.
 - Admin dapat meninjau aktivitas dan riwayat perubahan role di menu Aktivitas.
 - Login dibatasi setelah lima percobaan dalam 15 menit; sesi tidak aktif berakhir
   setelah 30 menit.
+
+## Pemulihan password administrator
+
+Jika admin satu-satunya lupa password, operator yang memiliki akses terminal
+server dapat mengatur ulang password:
+
+```powershell
+php database\reset_admin_password.php nama-pengguna-admin
+```
+
+Skrip meminta konfirmasi eksplisit dan password baru minimal 10 karakter.
+Input password terlihat di terminal; jalankan hanya di terminal privat.
 
 ## Backup dan restore
 

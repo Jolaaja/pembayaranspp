@@ -29,7 +29,8 @@ if (!$payment) {
 
 $eventsStmt = db_execute(
     $conn,
-    'SELECT e.event_type, e.amount, e.payment_date, e.details, e.created_at, a.nama_admin
+    'SELECT e.event_type, e.amount, e.payment_date, e.payment_method, e.payment_reference,
+            e.details, e.created_at, a.nama_admin
      FROM pembayaran_events e LEFT JOIN admin a ON a.id_admin = e.id_admin
      WHERE e.idspp = ? ORDER BY e.created_at DESC, e.id_event DESC',
     'i',
@@ -37,6 +38,12 @@ $eventsStmt = db_execute(
 );
 $events = mysqli_stmt_get_result($eventsStmt);
 mysqli_stmt_close($eventsStmt);
+$paymentMethodLabels = [
+    'cash' => 'Tunai',
+    'bank_transfer' => 'Transfer bank',
+    'qris' => 'QRIS',
+    'other' => 'Lainnya',
+];
 $isPaid = $payment['ket'] === 'LUNAS';
 $isOverdue = !$isPaid && $payment['status'] === 'aktif' && $payment['jatuhtempo'] < date('Y-m-d');
 $statusLabel = $isPaid ? 'Lunas' : ($isOverdue ? 'Terlambat' : 'Belum lunas');
@@ -99,6 +106,8 @@ include __DIR__ . '/header.php';
                             <div class="payment-timeline-meta">
                                 <span>Petugas: <?= e($event['nama_admin'] ?: 'Administrator dihapus') ?></span>
                                 <?php if ($event['payment_date']): ?><span>Tanggal bayar: <?= e(date('d/m/Y', strtotime($event['payment_date']))) ?></span><?php endif; ?>
+                                <?php if (isset($paymentMethodLabels[$event['payment_method']])): ?><span>Metode: <?= e($paymentMethodLabels[$event['payment_method']]) ?></span><?php endif; ?>
+                                <?php if ($event['payment_reference']): ?><span>Referensi: <?= e($event['payment_reference']) ?></span><?php endif; ?>
                             </div>
                         </article>
                     </li>

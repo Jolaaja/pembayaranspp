@@ -67,7 +67,7 @@ include __DIR__ . '/header.php';
             <div class="form-group"><label for="report-end">Sampai tanggal</label><input id="report-end" class="form-control" type="date" name="akhir" value="<?= e($akhir) ?>" required></div>
             <button type="submit" class="btn btn-primary">Tampilkan laporan</button>
             <a class="btn btn-secondary" href="cetak_laporan.php?awal=<?= e(rawurlencode($awal)) ?>&amp;akhir=<?= e(rawurlencode($akhir)) ?>" target="_blank">Pratinjau cetak</a>
-            <a class="btn btn-success" href="export_laporan.php?awal=<?= e(rawurlencode($awal)) ?>&amp;akhir=<?= e(rawurlencode($akhir)) ?>">Ekspor Excel</a>
+            <a class="btn btn-success" href="export_laporan.php?awal=<?= e(rawurlencode($awal)) ?>&amp;akhir=<?= e(rawurlencode($akhir)) ?>">Ekspor CSV</a>
         </form>
     </div>
 </section>

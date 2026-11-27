@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
                 </div>
                 <button type="submit" name="login" class="btn btn-primary">Masuk ke dashboard <span aria-hidden="true">→</span></button>
             </form>
-            <div class="login-security-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 19 6v5c0 5-3 8-7 10-4-2-7-5-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></svg><span>Akses terbatas untuk petugas sekolah. Jangan bagikan password Anda.</span></div>
+            <div class="login-security-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 19 6v5c0 5-3 8-7 10-4-2-7-5-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></svg><span>Akses terbatas untuk petugas sekolah. Jangan bagikan password Anda. Admin yang lupa password dapat meminta operator server menjalankan pemulihan lewat terminal.</span></div>
         </section>
     </div>
 </main>

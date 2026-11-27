@@ -89,15 +89,16 @@ $statusLabels = [
         </section>
         <div class="table-wrap">
             <table>
-                <thead><tr><th>No</th><th>NISN</th><th>Nama siswa</th><th>Kelas</th><th>Periode SPP</th><th>Jatuh tempo</th><th class="right">Nominal</th></tr></thead>
+                <thead><tr><th>No</th><th>NISN</th><th>Nama siswa</th><th>Kelas</th><th>HP orang tua/wali</th><th>Periode SPP</th><th>Jatuh tempo</th><th class="right">Nominal</th></tr></thead>
                 <tbody>
-                    <?php if (!$result['rows']): ?><tr><td class="empty" colspan="7">Tidak ada tagihan pada filter ini.</td></tr><?php endif; ?>
+                    <?php if (!$result['rows']): ?><tr><td class="empty" colspan="8">Tidak ada tagihan pada filter ini.</td></tr><?php endif; ?>
                     <?php foreach ($result['rows'] as $index => $row): ?>
                         <tr>
                             <td><?= $index + 1 ?></td>
                             <td><?= e($row['nisn']) ?></td>
                             <td><?= e($row['nama']) ?></td>
                             <td><?= e($row['nama_kelas']) ?></td>
+                            <td><?= e($row['guardian_phone'] ?? '—') ?></td>
                             <td><?= e($row['bulan']) ?></td>
                             <td><?= e(date('d/m/Y', strtotime($row['jatuhtempo']))) ?></td>
                             <td class="right"><?= format_rupiah((float) $row['jumlah']) ?></td>

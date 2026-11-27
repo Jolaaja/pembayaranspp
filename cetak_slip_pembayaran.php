@@ -29,6 +29,22 @@ if (!$data) {
 }
 
 $schoolSettings = fetch_school_settings($conn);
+$paymentDetailsStmt = db_execute(
+    $conn,
+    "SELECT payment_method, payment_reference, details
+     FROM pembayaran_events WHERE idspp = ? AND event_type = 'paid'
+     ORDER BY id_event DESC LIMIT 1",
+    'i',
+    [$idspp]
+);
+$paymentDetails = mysqli_fetch_assoc(mysqli_stmt_get_result($paymentDetailsStmt)) ?: [];
+mysqli_stmt_close($paymentDetailsStmt);
+$paymentMethodLabels = [
+    'cash' => 'Tunai',
+    'bank_transfer' => 'Transfer bank',
+    'qris' => 'QRIS',
+    'other' => 'Lainnya',
+];
 $receiptNumber = $data['nobayar'] ?: 'SPP-' . str_pad((string) $data['idspp'], 8, '0', STR_PAD_LEFT);
 $schoolContacts = array_filter([$schoolSettings['school_phone'], $schoolSettings['school_email']]);
 ?>
@@ -118,6 +134,9 @@ $schoolContacts = array_filter([$schoolSettings['school_phone'], $schoolSettings
                     <tr><th>Kelas / jurusan</th><td><?= e($data['nama_kelas']) ?> / <?= e($data['nama_jurusan']) ?></td></tr>
                     <tr><th>Bulan SPP</th><td><?= e($data['bulan']) ?></td></tr>
                     <tr><th>Tanggal pembayaran</th><td><?= e(date('d/m/Y', strtotime((string) $data['tglbayar']))) ?></td></tr>
+                    <?php if (isset($paymentMethodLabels[$paymentDetails['payment_method'] ?? ''])): ?><tr><th>Metode pembayaran</th><td><?= e($paymentMethodLabels[$paymentDetails['payment_method']]) ?></td></tr><?php endif; ?>
+                    <?php if (!empty($paymentDetails['payment_reference'])): ?><tr><th>Referensi transfer / QRIS</th><td><?= e($paymentDetails['payment_reference']) ?></td></tr><?php endif; ?>
+                    <?php if (!empty($paymentDetails['details']) && $paymentDetails['details'] !== 'Pembayaran SPP dikonfirmasi.'): ?><tr><th>Catatan</th><td><?= e($paymentDetails['details']) ?></td></tr><?php endif; ?>
                 </tbody>
             </table>
             <footer class="receipt-foot">

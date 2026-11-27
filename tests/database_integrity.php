@@ -35,6 +35,22 @@ if (!$admin) {
 
 expect_true(is_valid_iso_date('2026-01-31'), 'Tanggal ISO yang valid harus diterima.');
 expect_true(!is_valid_iso_date('2026-02-30'), 'Tanggal kalender yang tidak valid harus ditolak.');
+expect_true(is_valid_payment_date(date('Y-m-d')), 'Tanggal pembayaran hari ini harus diterima.');
+expect_true(is_valid_payment_date(date('Y-m-d', strtotime('-1 day'))), 'Tanggal pembayaran lampau harus diterima.');
+expect_true(!is_valid_payment_date(date('Y-m-d', strtotime('+1 day'))), 'Tanggal pembayaran mendatang harus ditolak.');
+expect_true(normalize_indonesian_mobile('081234567890') === '+6281234567890', 'Nomor ponsel lokal harus dinormalisasi ke format internasional.');
+expect_true(normalize_indonesian_mobile('+6281234567890') === '+6281234567890', 'Nomor ponsel internasional yang valid harus tetap konsisten.');
+expect_true(normalize_indonesian_mobile('0215550100') === null, 'Nomor telepon non-ponsel tidak boleh menjadi tautan WhatsApp.');
+expect_true(normalize_indonesian_mobile('call 081234567890') === null, 'Teks selain format nomor tidak boleh dinormalisasi sebagai telepon.');
+$testSchedule = build_spp_schedule('2026-03');
+expect_true(count($testSchedule) === 36 && $testSchedule[0]['due_date'] === '2026-03-10' && $testSchedule[35]['due_date'] === '2029-02-10', 'Jadwal SPP harus membuat 36 periode dari bulan pilihan dengan jatuh tempo tanggal 10.');
+$invalidScheduleRejected = false;
+try {
+    build_spp_schedule('2026-13');
+} catch (InvalidArgumentException $error) {
+    $invalidScheduleRejected = true;
+}
+expect_true($invalidScheduleRejected, 'Bulan pertama jadwal SPP yang tidak valid harus ditolak.');
 expect_column_type($conn, 'angkatan', 'biaya', 'decimal');
 expect_column_type($conn, 'pembayaran', 'jumlah', 'decimal');
 expect_column_type($conn, 'pembayaran', 'jatuhtempo', 'date');
@@ -42,6 +58,10 @@ expect_column_type($conn, 'pembayaran', 'tglbayar', 'date');
 expect_column_type($conn, 'admin', 'gender', 'enum');
 expect_column_type($conn, 'admin', 'profile_photo', 'mediumblob');
 expect_column_type($conn, 'school_settings', 'logo_data', 'mediumblob');
+expect_column_type($conn, 'siswa', 'guardian_name', 'varchar');
+expect_column_type($conn, 'siswa', 'guardian_phone', 'varchar');
+expect_column_type($conn, 'pembayaran_events', 'payment_method', 'enum');
+expect_column_type($conn, 'pembayaran_events', 'payment_reference', 'varchar');
 $schoolSettings = fetch_school_settings($conn);
 expect_true(trim($schoolSettings['school_name']) !== '', 'Pengaturan sekolah harus memiliki nama yang dapat digunakan.');
 
@@ -65,18 +85,24 @@ try {
     $nisn = 'T' . bin2hex(random_bytes(8));
     db_execute(
         $conn,
-        'INSERT INTO siswa (nisn, nama, id_angkatan, id_jurusan, id_kelas, alamat) VALUES (?, ?, ?, ?, ?, ?)',
-        'ssiiis',
-        [$nisn, 'Siswa Uji', $cohortId, $majorId, $classId, 'Data uji sementara']
+        'INSERT INTO siswa (nisn, nama, id_angkatan, id_jurusan, id_kelas, alamat, guardian_name, guardian_phone)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        'ssiiisss',
+        [$nisn, 'Siswa Uji', $cohortId, $majorId, $classId, 'Data uji sementara', 'Wali Uji', '+6281234567890']
     );
     $studentId = mysqli_insert_id($conn);
     $secondStudentNisn = 'T' . bin2hex(random_bytes(8));
     db_execute(
         $conn,
-        'INSERT INTO siswa (nisn, nama, id_angkatan, id_jurusan, id_kelas, alamat) VALUES (?, ?, ?, ?, ?, ?)',
-        'ssiiis',
-        [$secondStudentNisn, 'Siswa Uji Kedua', $cohortId, $majorId, $classId, 'Data uji sementara']
+        'INSERT INTO siswa (nisn, nama, id_angkatan, id_jurusan, id_kelas, alamat, guardian_name, guardian_phone)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        'ssiiisss',
+        [$secondStudentNisn, 'Siswa Uji Kedua', $cohortId, $majorId, $classId, 'Data uji sementara', null, null]
     );
+    $paymentNameMatches = search_payment_students($conn, 'Siswa Uji');
+    expect_true(count($paymentNameMatches) === 2, 'Pencarian pembayaran harus menemukan nama siswa yang cocok.');
+    $paymentNisnMatches = search_payment_students($conn, $nisn);
+    expect_true(count($paymentNisnMatches) === 1 && $paymentNisnMatches[0]['nisn'] === $nisn, 'Pencarian pembayaran harus menerima NISN.');
     $directoryPage = fetch_student_page($conn, 'Siswa Uji', 'nama', 'asc', 1, 1);
     $firstDirectoryStudent = mysqli_fetch_assoc($directoryPage['rows']);
     expect_true($directoryPage['total'] === 2 && $directoryPage['page'] === 1 && $firstDirectoryStudent['nama'] === 'Siswa Uji', 'Direktori siswa harus memfilter dan mengurutkan hasil melalui database.');
@@ -102,7 +128,8 @@ try {
     expect_true(
         $overdueReminders['total'] === 1
             && (int) $overdueReminders['rows'][0]['idspp'] === $paymentId
-            && (float) $overdueReminders['amount'] === 98765.43,
+            && (float) $overdueReminders['amount'] === 98765.43
+            && $overdueReminders['rows'][0]['guardian_phone'] === '+6281234567890',
         'Daftar pengingat harus menyaring tunggakan siswa dan menghitung nominalnya.'
     );
     $upcomingDueDate = date('Y-m-d', strtotime('+5 days'));
@@ -134,7 +161,22 @@ try {
 
     $paymentDate = date('Y-m-d');
     db_execute($conn, "UPDATE pembayaran SET nobayar = ?, tglbayar = ?, ket = 'LUNAS', id_admin = ? WHERE idspp = ?", 'ssii', ['TEST-' . $paymentId, $paymentDate, $adminId, $paymentId]);
-    db_execute($conn, "INSERT INTO pembayaran_events (idspp, id_admin, event_type, amount, payment_date, details) VALUES (?, ?, 'paid', ?, ?, ?)", 'iidss', [$paymentId, $adminId, '98765.43', $paymentDate, 'Pembayaran uji']);
+    db_execute(
+        $conn,
+        "INSERT INTO pembayaran_events
+            (idspp, id_admin, event_type, payment_method, reference_no, payment_reference, amount, payment_date, details)
+         VALUES (?, ?, 'paid', ?, ?, ?, ?, ?, ?)",
+        'iisssdss',
+        [$paymentId, $adminId, 'bank_transfer', 'TEST-' . $paymentId, 'REF-TEST-123', '98765.43', $paymentDate, 'Pembayaran uji']
+    );
+    $paymentMetadata = db_execute(
+        $conn,
+        'SELECT payment_method, payment_reference FROM pembayaran_events WHERE idspp = ? AND event_type = ?',
+        'is',
+        [$paymentId, 'paid']
+    );
+    $metadataRow = mysqli_fetch_assoc(mysqli_stmt_get_result($paymentMetadata));
+    expect_true($metadataRow['payment_method'] === 'bank_transfer' && $metadataRow['payment_reference'] === 'REF-TEST-123', 'Metode dan referensi pembayaran harus tersimpan pada riwayat transaksi.');
     audit_event($conn, 'payment_paid', 'pembayaran', $paymentId, 'Aktivitas uji transaksi.');
 
     $report = db_execute($conn, "SELECT COUNT(*) AS transactions, SUM(jumlah) AS income FROM pembayaran WHERE ket = 'LUNAS' AND idspp = ?", 'i', [$paymentId]);
@@ -160,7 +202,14 @@ try {
     expect_true((int) mysqli_fetch_assoc(mysqli_stmt_get_result($monthlyReport))['transactions'] === 1, 'Rekap pemasukan bulanan harus mengelompokkan berdasarkan tanggal bayar.');
 
     db_execute($conn, 'UPDATE pembayaran SET nobayar = NULL, tglbayar = NULL, ket = NULL, id_admin = NULL WHERE idspp = ?', 'i', [$paymentId]);
-    db_execute($conn, "INSERT INTO pembayaran_events (idspp, id_admin, event_type, amount, payment_date, details) VALUES (?, ?, 'reversed', ?, ?, ?)", 'iidss', [$paymentId, $adminId, '98765.43', $paymentDate, 'Pembatalan uji']);
+    db_execute(
+        $conn,
+        "INSERT INTO pembayaran_events
+            (idspp, id_admin, event_type, payment_method, reference_no, payment_reference, amount, payment_date, details)
+         VALUES (?, ?, 'reversed', ?, ?, ?, ?, ?, ?)",
+        'iisssdss',
+        [$paymentId, $adminId, 'bank_transfer', 'TEST-' . $paymentId, 'REF-TEST-123', '98765.43', $paymentDate, 'Pembatalan uji']
+    );
     audit_event($conn, 'payment_reversed', 'pembayaran', $paymentId, 'Aktivitas uji pembatalan.');
     $events = db_execute($conn, 'SELECT COUNT(*) AS total FROM pembayaran_events WHERE idspp = ?', 'i', [$paymentId]);
     expect_true((int) mysqli_fetch_assoc(mysqli_stmt_get_result($events))['total'] === 2, 'Pembayaran dan pembatalan harus tersimpan sebagai dua peristiwa.');
@@ -182,6 +231,7 @@ try {
         [$paymentId]
     );
     expect_true((int) mysqli_fetch_assoc(mysqli_stmt_get_result($archivedOverdue))['total'] === 0, 'Siswa yang diarsipkan tidak boleh masuk daftar tunggakan aktif.');
+    expect_true(search_payment_students($conn, $nisn) === [], 'Pencarian pembayaran tidak boleh menampilkan siswa yang diarsipkan.');
 
     mysqli_rollback($conn);
     echo "Database integrity tests passed; all fixture data rolled back.\n";

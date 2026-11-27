@@ -16,6 +16,22 @@ if (!$idspp || $nisn === '' || !in_array($action, ['bayar', 'batal'], true)) {
     exit('Data transaksi tidak valid.');
 }
 
+$paymentMethod = is_string($_POST['payment_method'] ?? null) ? $_POST['payment_method'] : '';
+$paymentReference = is_string($_POST['payment_reference'] ?? null) ? trim($_POST['payment_reference']) : '';
+$paymentNote = is_string($_POST['payment_note'] ?? null) ? trim($_POST['payment_note']) : '';
+$paymentDate = is_string($_POST['payment_date'] ?? null) ? $_POST['payment_date'] : '';
+if ($action === 'bayar') {
+    $validMethod = in_array($paymentMethod, ['cash', 'bank_transfer', 'qris', 'other'], true);
+    $validReference = preg_match('/\A.{0,100}\z/us', $paymentReference) === 1;
+    $validNote = preg_match('/\A.{0,255}\z/us', $paymentNote) === 1;
+    $validDate = is_valid_payment_date($paymentDate);
+    if (!$validMethod || !$validReference || !$validNote || !$validDate) {
+        flash('Periksa metode, referensi, catatan, dan tanggal pembayaran. Tanggal tidak boleh melewati hari ini.', 'danger');
+        header('Location: pembayaran.php?nisn=' . rawurlencode($nisn));
+        exit;
+    }
+}
+
 mysqli_begin_transaction($conn);
 try {
     $paymentQuery = db_execute(
@@ -39,7 +55,6 @@ try {
             flash('Pembayaran ini sudah lunas.');
         } else {
             $receipt = 'SPP-' . date('Ymd') . '-' . str_pad((string) $idspp, 5, '0', STR_PAD_LEFT);
-            $paymentDate = date('Y-m-d');
             db_execute(
                 $conn,
                 "UPDATE pembayaran SET nobayar = ?, tglbayar = ?, ket = 'LUNAS', id_admin = ? WHERE idspp = ?",
@@ -48,10 +63,11 @@ try {
             );
             db_execute(
                 $conn,
-                "INSERT INTO pembayaran_events (idspp, id_admin, event_type, reference_no, amount, payment_date, details)
-                 VALUES (?, ?, 'paid', ?, ?, ?, ?)",
-                'iisdss',
-                [$idspp, $adminId, $receipt, $payment['jumlah'], $paymentDate, 'Pembayaran SPP dikonfirmasi.']
+                "INSERT INTO pembayaran_events
+                    (idspp, id_admin, event_type, payment_method, reference_no, payment_reference, amount, payment_date, details)
+                 VALUES (?, ?, 'paid', ?, ?, ?, ?, ?, ?)",
+                'iisssdss',
+                [$idspp, $adminId, $paymentMethod, $receipt, $paymentReference !== '' ? $paymentReference : null, $payment['jumlah'], $paymentDate, $paymentNote !== '' ? $paymentNote : 'Pembayaran SPP dikonfirmasi.']
             );
             audit_event($conn, 'payment_paid', 'pembayaran', $idspp, 'Pembayaran SPP dikonfirmasi.');
             mysqli_commit($conn);
@@ -61,6 +77,16 @@ try {
         mysqli_rollback($conn);
         flash('Pembayaran ini belum lunas atau sudah dibatalkan.', 'warning');
     } else {
+        $paidEventStmt = db_execute(
+            $conn,
+            "SELECT payment_method, payment_reference
+             FROM pembayaran_events WHERE idspp = ? AND event_type = 'paid'
+             ORDER BY id_event DESC LIMIT 1",
+            'i',
+            [$idspp]
+        );
+        $paidEvent = mysqli_fetch_assoc(mysqli_stmt_get_result($paidEventStmt)) ?: [];
+        mysqli_stmt_close($paidEventStmt);
         db_execute(
             $conn,
             'UPDATE pembayaran SET nobayar = NULL, tglbayar = NULL, ket = NULL, id_admin = NULL WHERE idspp = ?',
@@ -69,10 +95,11 @@ try {
         );
         db_execute(
             $conn,
-            "INSERT INTO pembayaran_events (idspp, id_admin, event_type, reference_no, amount, payment_date, details)
-             VALUES (?, ?, 'reversed', ?, ?, ?, ?)",
-            'iisdss',
-            [$idspp, $adminId, $payment['nobayar'], $payment['jumlah'], $payment['tglbayar'], 'Pembayaran dibatalkan.']
+            "INSERT INTO pembayaran_events
+                (idspp, id_admin, event_type, payment_method, reference_no, payment_reference, amount, payment_date, details)
+             VALUES (?, ?, 'reversed', ?, ?, ?, ?, ?, ?)",
+            'iisssdss',
+            [$idspp, $adminId, $paidEvent['payment_method'] ?? null, $payment['nobayar'], $paidEvent['payment_reference'] ?? null, $payment['jumlah'], $payment['tglbayar'], 'Pembayaran dibatalkan.']
         );
         audit_event($conn, 'payment_reversed', 'pembayaran', $idspp, 'Pembayaran SPP dibatalkan.');
         mysqli_commit($conn);

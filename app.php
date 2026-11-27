@@ -21,6 +21,62 @@ function is_valid_iso_date(string $value): bool
         && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0));
 }
 
+function is_valid_payment_date(string $value): bool
+{
+    return is_valid_iso_date($value) && $value <= (new DateTimeImmutable('today'))->format('Y-m-d');
+}
+
+function normalize_indonesian_mobile(string $phone): ?string
+{
+    $phone = trim($phone);
+    if (preg_match('/\A.{1,30}\z/us', $phone) !== 1
+        || preg_match('/\A\+?[0-9\s().-]+\z/u', $phone) !== 1) {
+        return null;
+    }
+
+    $digits = preg_replace('/\D+/', '', trim($phone));
+    if (!is_string($digits) || $digits === '') {
+        return null;
+    }
+
+    if (strncmp($digits, '62', 2) === 0) {
+        $digits = substr($digits, 2);
+    } elseif ($digits[0] === '0') {
+        $digits = substr($digits, 1);
+    }
+
+    return preg_match('/\A8[0-9]{7,12}\z/', $digits) === 1 ? '+62' . $digits : null;
+}
+
+function build_spp_schedule(string $firstMonth): array
+{
+    $year = (int) substr($firstMonth, 0, 4);
+    if (preg_match('/\A[0-9]{4}-(0[1-9]|1[0-2])\z/', $firstMonth) !== 1
+        || $year < 1900 || $year > 9996) {
+        throw new InvalidArgumentException('Bulan pertama jadwal SPP tidak valid.');
+    }
+
+    $startMonth = DateTimeImmutable::createFromFormat('!Y-m-d', $firstMonth . '-01');
+    if (!$startMonth || $startMonth->format('Y-m') !== $firstMonth) {
+        throw new InvalidArgumentException('Bulan pertama jadwal SPP tidak valid.');
+    }
+
+    $monthNames = [
+        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+    ];
+    $schedule = [];
+    for ($offset = 0; $offset < 36; $offset++) {
+        $month = $startMonth->modify('+' . $offset . ' months');
+        $schedule[] = [
+            'due_date' => $month->setDate((int) $month->format('Y'), (int) $month->format('n'), 10)->format('Y-m-d'),
+            'label' => $monthNames[(int) $month->format('n') - 1] . ' ' . $month->format('Y'),
+        ];
+    }
+
+    return $schedule;
+}
+
 function normalize_profile_photo(array $upload): string
 {
     $error = (int) ($upload['error'] ?? UPLOAD_ERR_NO_FILE);
@@ -351,6 +407,34 @@ function fetch_student_page(
     ];
 }
 
+function search_payment_students(mysqli $conn, string $search, int $limit = 10): array
+{
+    if (preg_match('/\A.{1,100}\z/us', $search) !== 1 || $limit < 1 || $limit > 50) {
+        throw new InvalidArgumentException('Pencarian siswa untuk pembayaran tidak valid.');
+    }
+
+    $like = '%' . addcslashes($search, "\\_%") . '%';
+    $stmt = db_execute(
+        $conn,
+        "SELECT s.id_siswa, s.nisn, s.nama, a.nama_angkatan, a.biaya, j.nama_jurusan, k.nama_kelas
+         FROM siswa s JOIN angkatan a ON a.id_angkatan = s.id_angkatan
+         JOIN jurusan j ON j.id_jurusan = s.id_jurusan
+         JOIN kelas k ON k.id_kelas = s.id_kelas
+         WHERE s.status = 'aktif' AND (s.nisn LIKE ? OR s.nama LIKE ?)
+         ORDER BY CASE WHEN s.nisn = ? THEN 0 ELSE 1 END, s.nama ASC
+         LIMIT ?",
+        'sssi',
+        [$like, $like, $search, $limit + 1]
+    );
+    $result = mysqli_stmt_get_result($stmt);
+    $matches = [];
+    while ($row = mysqli_fetch_assoc($result)) {
+        $matches[] = $row;
+    }
+    mysqli_stmt_close($stmt);
+    return $matches;
+}
+
 function fetch_payment_reminders(
     mysqli $conn,
     string $status,
@@ -402,7 +486,7 @@ function fetch_payment_reminders(
     $lastPage = $perPage === null ? 1 : max(1, (int) ceil($total / $perPage));
     $page = min($page, $lastPage);
     $rowsSql = 'SELECT p.idspp, p.bulan, p.jumlah, p.jatuhtempo,
-                       s.id_siswa, s.nisn, s.nama, k.nama_kelas
+                       s.id_siswa, s.nisn, s.nama, s.guardian_name, s.guardian_phone, k.nama_kelas
                 ' . $fromSql . '
                 ORDER BY p.jatuhtempo ASC, s.nama ASC, p.idspp ASC';
     $rowsParams = $params;

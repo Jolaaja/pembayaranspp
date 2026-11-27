@@ -34,14 +34,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['simpan']) || isset($
     $majorId = filter_var($_POST['id_jurusan'] ?? null, FILTER_VALIDATE_INT);
     $cohortId = filter_var($_POST['id_angkatan'] ?? null, FILTER_VALIDATE_INT);
     $address = trim((string) ($_POST['alamat'] ?? ''));
+    $guardianName = is_string($_POST['guardian_name'] ?? null) ? trim($_POST['guardian_name']) : '';
+    $rawGuardianPhone = is_string($_POST['guardian_phone'] ?? null) ? trim($_POST['guardian_phone']) : '';
+    $guardianPhone = $rawGuardianPhone === '' ? null : normalize_indonesian_mobile($rawGuardianPhone);
 
     if ($name === '' || $nisn === '' || !$classId || !$majorId || !$cohortId || $address === '') {
         flash('Lengkapi semua data siswa dengan benar.', 'danger');
         header('Location: editdatasiswa.php');
         exit;
     }
+    if (preg_match('/\A.{0,100}\z/us', $guardianName) !== 1) {
+        flash('Nama orang tua/wali maksimal 100 karakter.', 'danger');
+        header('Location: editdatasiswa.php');
+        exit;
+    }
+    if ($rawGuardianPhone !== '' && $guardianPhone === null) {
+        flash('Nomor WhatsApp harus berupa nomor ponsel Indonesia, misalnya 081234567890 atau +6281234567890.', 'danger');
+        header('Location: editdatasiswa.php');
+        exit;
+    }
 
     if (isset($_POST['simpan'])) {
+        $firstMonth = is_string($_POST['first_billing_month'] ?? null) ? $_POST['first_billing_month'] : '';
+        try {
+            $schedule = build_spp_schedule($firstMonth);
+        } catch (InvalidArgumentException $error) {
+            flash($error->getMessage(), 'danger');
+            header('Location: editdatasiswa.php');
+            exit;
+        }
+
         $duplicate = db_execute($conn, 'SELECT id_siswa FROM siswa WHERE nisn = ? LIMIT 1', 's', [$nisn]);
         if (mysqli_fetch_assoc(mysqli_stmt_get_result($duplicate))) {
             flash('NISN tersebut sudah terdaftar.', 'danger');
@@ -51,7 +73,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['simpan']) || isset($
 
         mysqli_begin_transaction($conn);
         try {
-            db_execute($conn, 'INSERT INTO siswa (nisn, nama, id_angkatan, id_jurusan, id_kelas, alamat) VALUES (?, ?, ?, ?, ?, ?)', 'ssiiis', [$nisn, $name, $cohortId, $majorId, $classId, $address]);
+            db_execute(
+                $conn,
+                'INSERT INTO siswa (nisn, nama, id_angkatan, id_jurusan, id_kelas, alamat, guardian_name, guardian_phone)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                'ssiiisss',
+                [$nisn, $name, $cohortId, $majorId, $classId, $address, $guardianName !== '' ? $guardianName : null, $guardianPhone]
+            );
             $studentId = mysqli_insert_id($conn);
             $feeQuery = db_execute($conn, 'SELECT biaya FROM angkatan WHERE id_angkatan = ?', 'i', [$cohortId]);
             $cohort = mysqli_fetch_assoc(mysqli_stmt_get_result($feeQuery));
@@ -59,20 +87,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['simpan']) || isset($
                 throw new RuntimeException('Angkatan yang dipilih tidak ditemukan.');
             }
 
-            $months = [
-                'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-                'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
-            ];
-            $startMonth = new DateTimeImmutable('first day of this month');
-            for ($offset = 0; $offset < 36; $offset++) {
-                $monthDate = $startMonth->modify('+' . $offset . ' months');
-                $dueDate = $monthDate->format('Y-m-') . '10';
-                $monthLabel = $months[(int) $monthDate->format('n') - 1] . ' ' . $monthDate->format('Y');
-                db_execute($conn, 'INSERT INTO pembayaran (id_siswa, jatuhtempo, bulan, jumlah) VALUES (?, ?, ?, ?)', 'isss', [$studentId, $dueDate, $monthLabel, (string) $cohort['biaya']]);
+            foreach ($schedule as $period) {
+                db_execute(
+                    $conn,
+                    'INSERT INTO pembayaran (id_siswa, jatuhtempo, bulan, jumlah) VALUES (?, ?, ?, ?)',
+                    'isss',
+                    [$studentId, $period['due_date'], $period['label'], (string) $cohort['biaya']]
+                );
             }
             audit_event($conn, 'student_created', 'siswa', $studentId, 'Siswa dan jadwal SPP 36 bulan dibuat.');
             mysqli_commit($conn);
-            flash('Data siswa dan 36 jadwal SPP berhasil dibuat.');
+            flash('Data siswa dan 36 jadwal SPP berhasil dibuat dari ' . $schedule[0]['label'] . ' sampai ' . $schedule[35]['label'] . '.');
         } catch (mysqli_sql_exception | RuntimeException $error) {
             mysqli_rollback($conn);
             error_log('Student creation failed: ' . $error->getMessage());
@@ -83,7 +108,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['simpan']) || isset($
         if (!$studentId) {
             flash('ID siswa tidak valid.', 'danger');
         } else {
-            $update = db_execute($conn, 'UPDATE siswa SET nama = ?, id_jurusan = ?, id_angkatan = ?, id_kelas = ?, alamat = ? WHERE id_siswa = ?', 'siiisi', [$name, $majorId, $cohortId, $classId, $address, $studentId]);
+            db_execute(
+                $conn,
+                'UPDATE siswa
+                 SET nama = ?, id_jurusan = ?, id_angkatan = ?, id_kelas = ?, alamat = ?, guardian_name = ?, guardian_phone = ?
+                 WHERE id_siswa = ?',
+                'siiisssi',
+                [$name, $majorId, $cohortId, $classId, $address, $guardianName !== '' ? $guardianName : null, $guardianPhone, $studentId]
+            );
             audit_event($conn, 'student_updated', 'siswa', $studentId, 'Data siswa diperbarui.');
             flash('Data siswa berhasil diperbarui.');
         }
@@ -114,6 +146,8 @@ $page = $studentPage['page'];
 $lastPage = $studentPage['last_page'];
 $startRow = $total > 0 ? (($page - 1) * $studentPage['per_page']) + 1 : 0;
 $endRow = min($page * $studentPage['per_page'], $total);
+$defaultFirstMonth = date('Y-m');
+$defaultSchedule = build_spp_schedule($defaultFirstMonth);
 include __DIR__ . '/header.php';
 ?>
 
@@ -220,6 +254,13 @@ include __DIR__ . '/header.php';
                     </select>
                 </div>
                 <div class="form-group entity-form-full"><label for="new-address">Alamat</label><textarea id="new-address" class="form-control" name="alamat" placeholder="Alamat siswa" required></textarea></div>
+                <div class="form-group"><label for="new-guardian-name">Nama orang tua/wali <span class="label-optional">opsional</span></label><input id="new-guardian-name" class="form-control" type="text" name="guardian_name" maxlength="100"></div>
+                <div class="form-group"><label for="new-guardian-phone">Nomor WhatsApp orang tua/wali <span class="label-optional">opsional</span></label><input id="new-guardian-phone" class="form-control" type="tel" name="guardian_phone" maxlength="30" autocomplete="tel" placeholder="08xx atau +628xx"><small>Nomor ponsel Indonesia, misalnya 081234567890.</small></div>
+                <div class="form-group entity-form-full">
+                    <label for="first-billing-month">Bulan pertama tagihan</label>
+                    <input id="first-billing-month" class="form-control" type="month" name="first_billing_month" value="<?= e($defaultFirstMonth) ?>" required data-spp-first-month>
+                    <small data-spp-schedule-preview aria-live="polite">36 jadwal, dari <?= e($defaultSchedule[0]['label']) ?> sampai <?= e($defaultSchedule[35]['label']) ?>; jatuh tempo setiap tanggal 10.</small>
+                </div>
             </div>
             <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button><button type="submit" name="simpan" class="btn btn-primary">Simpan siswa</button></div>
         </form>

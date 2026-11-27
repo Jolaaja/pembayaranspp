@@ -29,6 +29,26 @@
     }
 
     document.addEventListener('click', function (event) {
+        var paymentTrigger = event.target.closest('[data-payment-confirm]');
+        if (paymentTrigger) {
+            var paymentModal = document.getElementById('payment-confirmation-modal');
+            var paymentForm = document.getElementById('payment-confirmation-form');
+            if (paymentModal && paymentForm) {
+                paymentForm.reset();
+                var referenceField = paymentModal.querySelector('[data-payment-reference-field]');
+                if (referenceField) referenceField.hidden = true;
+                document.getElementById('payment-confirmation-id').value = paymentTrigger.getAttribute('data-payment-id');
+                document.getElementById('payment-confirmation-nisn').value = paymentTrigger.getAttribute('data-payment-nisn');
+                document.getElementById('payment-confirmation-summary').textContent =
+                    paymentTrigger.getAttribute('data-payment-month') + ' · ' +
+                    paymentTrigger.getAttribute('data-payment-amount') + ' · ' +
+                    paymentTrigger.getAttribute('data-payment-student');
+                showModal(paymentModal);
+                document.getElementById('payment-method').focus();
+            }
+            return;
+        }
+
         var passwordToggle = event.target.closest('[data-password-toggle]');
         if (passwordToggle) {
             var passwordInput = document.getElementById(passwordToggle.getAttribute('data-password-toggle'));
@@ -111,6 +131,43 @@
 
         if (event.target.classList.contains('modal')) hideModal(event.target);
     });
+
+    var paymentMethod = document.getElementById('payment-method');
+    var paymentReferenceField = document.querySelector('[data-payment-reference-field]');
+    if (paymentMethod && paymentReferenceField) {
+        paymentMethod.addEventListener('change', function () {
+            paymentReferenceField.hidden = !['bank_transfer', 'qris'].includes(paymentMethod.value);
+        });
+    }
+
+    var reminderType = document.getElementById('reminder-type');
+    var reminderDaysField = document.querySelector('[data-reminder-days]');
+    if (reminderType && reminderDaysField) {
+        var updateReminderDaysVisibility = function () {
+            reminderDaysField.hidden = reminderType.value !== 'upcoming';
+        };
+        reminderType.addEventListener('change', updateReminderDaysVisibility);
+        updateReminderDaysVisibility();
+    }
+
+    var firstBillingMonth = document.querySelector('[data-spp-first-month]');
+    var schedulePreview = document.querySelector('[data-spp-schedule-preview]');
+    if (firstBillingMonth && schedulePreview) {
+        var updateSchedulePreview = function () {
+            var match = /^(\d{4})-(\d{2})$/.exec(firstBillingMonth.value);
+            if (!match) {
+                schedulePreview.textContent = 'Pilih bulan pertama untuk melihat pratinjau jadwal.';
+                return;
+            }
+            var start = new Date(Number(match[1]), Number(match[2]) - 1, 1);
+            var end = new Date(Number(match[1]), Number(match[2]) - 1 + 35, 1);
+            var formatter = new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' });
+            schedulePreview.textContent = '36 jadwal, dari ' + formatter.format(start) + ' sampai ' +
+                formatter.format(end) + '; jatuh tempo setiap tanggal 10.';
+        };
+        firstBillingMonth.addEventListener('input', updateSchedulePreview);
+        firstBillingMonth.addEventListener('change', updateSchedulePreview);
+    }
 
     document.addEventListener('keydown', function (event) {
         if (event.key === 'Escape') {

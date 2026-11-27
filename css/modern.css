@@ -270,6 +270,8 @@ label { margin-bottom: 7px; color: #536462; font-size: 11px; font-weight: 700; }
 .reminder-summary-accent { border-color: #dcece1; background: linear-gradient(120deg,#f1f8f2,#fff); }
 .reminder-card-header { gap: 14px; }
 .reminder-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.reminder-row-actions { display: flex; flex-wrap: wrap; gap: 6px; min-width: 150px; }
+.reminder-contact-missing { align-self: center; color: var(--muted); font-size: 9px; }
 .reminder-filter-form { display: grid; grid-template-columns: minmax(180px,1fr) minmax(130px,.7fr) minmax(220px,1.3fr) auto; align-items: end; gap: 12px; margin: 0 0 18px; padding: 15px; border: 1px solid var(--line); border-radius: 12px; background: #f9fbf9; }
 .reminder-filter-form .form-group { min-width: 0; margin: 0; }
 .reminder-filter-form .btn { min-height: 43px; }

@@ -59,6 +59,8 @@ if ($entityKey === 'id_siswa') {
             </div>
         <?php endforeach; ?>
         <div class="form-group"><label for="student-address">Alamat</label><textarea id="student-address" class="form-control" name="alamat" required><?= e($record['alamat']) ?></textarea></div>
+        <div class="form-group"><label for="student-guardian-name">Nama orang tua/wali <span class="label-optional">opsional</span></label><input id="student-guardian-name" class="form-control" type="text" name="guardian_name" maxlength="100" value="<?= e($record['guardian_name'] ?? '') ?>"></div>
+        <div class="form-group"><label for="student-guardian-phone">Nomor WhatsApp orang tua/wali <span class="label-optional">opsional</span></label><input id="student-guardian-phone" class="form-control" type="tel" name="guardian_phone" maxlength="30" autocomplete="tel" placeholder="08xx atau +628xx" value="<?= e($record['guardian_phone'] ?? '') ?>"></div>
         <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button><button type="submit" class="btn btn-primary" name="edit">Simpan perubahan</button></div>
     </form>
     <?php
