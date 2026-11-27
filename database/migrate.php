@@ -13,6 +13,19 @@ $database = getenv('DB_NAME') ?: 'webspp';
 $username = getenv('DB_USER') ?: 'root';
 $password = getenv('DB_PASS') ?: '';
 
+if (strtolower((string) (getenv('APP_ENV') ?: 'development')) === 'production') {
+    foreach (['DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASS'] as $requiredSetting) {
+        if (getenv($requiredSetting) === false || trim((string) getenv($requiredSetting)) === '') {
+            fwrite(STDERR, "Konfigurasi database produksi belum lengkap: $requiredSetting\n");
+            exit(1);
+        }
+    }
+    if (strtolower($username) === 'root' || trim($password) === '') {
+        fwrite(STDERR, "Produksi memerlukan akun database khusus dengan password non-kosong.\n");
+        exit(1);
+    }
+}
+
 if (!preg_match('/^[a-zA-Z0-9_]+$/', $database)) {
     fwrite(STDERR, "Nama database hanya boleh berisi huruf, angka, dan underscore.\n");
     exit(1);

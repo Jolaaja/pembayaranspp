@@ -16,6 +16,8 @@ $pageInfo = [
     'adminedit.php' => ['Pengaturan akun', 'Perbarui informasi dan password akun Anda.'],
     'identitassekolah.php' => ['Identitas sekolah', 'Atur profil, identitas visual, dan riwayat sekolah.'],
     'adminusers.php' => ['Pengguna', 'Kelola akun administrator dan kasir.'],
+    'portal_accounts.php' => ['Akun portal keluarga', 'Kelola akses orang tua, wali, dan siswa.'],
+    'portal_account_students.php' => ['Tautan siswa portal', 'Atur siswa yang dapat dilihat oleh akun portal.'],
     'auditlog.php' => ['Aktivitas', 'Tinjau perubahan dan transaksi yang tercatat.'],
 ];
 [$pageTitle, $pageDescription] = $pageInfo[$currentPage] ?? ['Aplikasi SPP', 'Pengelolaan pembayaran sekolah.'];
@@ -55,6 +57,7 @@ $schoolSettings = fetch_school_settings($conn);
                 <a class="side-link <?= $currentPage === 'editdatajurusan.php' ? 'is-active' : '' ?>" href="editdatajurusan.php"><svg class="side-icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 9-9 9-9-9 9-9Z"/><circle cx="12" cy="12" r="2"/></svg><span>Jurusan</span></a>
                 <a class="side-link <?= $currentPage === 'editdataangkatan.php' ? 'is-active' : '' ?>" href="editdataangkatan.php"><svg class="side-icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>Angkatan &amp; biaya</span></a>
                 <a class="side-link <?= $currentPage === 'adminusers.php' ? 'is-active' : '' ?>" href="adminusers.php"><svg class="side-icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0m2-11a3 3 0 0 1 0 6m1 2a5 5 0 0 1 3 3"/></svg><span>Pengguna</span></a>
+                <a class="side-link <?= in_array($currentPage, ['portal_accounts.php', 'portal_account_students.php'], true) ? 'is-active' : '' ?>" href="portal_accounts.php"><svg class="side-icon-svg" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="8" r="3.5"/><path d="M1.5 20a6.5 6.5 0 0 1 13 0m4-12v8m-4-4h8"/></svg><span>Akun portal keluarga</span></a>
                 <a class="side-link <?= $currentPage === 'identitassekolah.php' ? 'is-active' : '' ?>" href="identitassekolah.php"><svg class="side-icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 10h.01M15 10h.01M9 14h.01M15 14h.01M10 21v-4h4v4"/></svg><span>Identitas sekolah</span></a>
                 <a class="side-link <?= $currentPage === 'auditlog.php' ? 'is-active' : '' ?>" href="auditlog.php"><svg class="side-icon-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h12M9 12h12M9 18h12M3 6h.01M3 12h.01M3 18h.01"/></svg><span>Aktivitas</span></a>
             <?php endif; ?>

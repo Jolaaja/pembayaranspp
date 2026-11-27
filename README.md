@@ -16,9 +16,14 @@ Identitas Portal SPP memakai logo vektor lokal di `img/logo-spp.svg`.
 
 ## Instalasi dan migrasi
 
-1. Letakkan proyek di document root dan pastikan MySQL/MariaDB aktif.
-2. Atur kredensial database. Nilai bawaan aplikasi: `localhost`, port `3308`,
-   database `webspp`, user `root`, tanpa password.
+1. Untuk penggunaan lokal, letakkan proyek pada document root Laragon dan
+   pastikan MySQL/MariaDB aktif. Jangan gunakan konfigurasi lokal ini untuk
+   server publik.
+2. Untuk lokal, nilai koneksi bawaan adalah `localhost`, port `3308`,
+   database `webspp`, user `root`, tanpa password. Untuk produksi, atur
+   `APP_ENV=production` beserta `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, dan
+   `DB_PASS`; aplikasi menolak konfigurasi produksi yang memakai `root` atau
+   password kosong.
 3. Jalankan migrasi melalui PowerShell dari folder proyek:
 
    ```powershell
@@ -35,6 +40,9 @@ Identitas Portal SPP memakai logo vektor lokal di `img/logo-spp.svg`.
    menambahkan kontak orang tua/wali dan detail metode pembayaran. Migrasi
    `007_school_identity_history.sql` menambahkan NPSN, kepala sekolah, situs resmi,
    serta riwayat versi identitas yang dapat dipulihkan (maksimal 20 versi).
+   Migrasi `008_family_portal.sql` menyiapkan akun portal orang tua/wali dan
+   siswa beserta hubungan akun-siswa dan log keamanan. Migrasi ini menambah
+   tabel baru tanpa mengubah jadwal atau riwayat pembayaran.
    Pemeriksaan awal
    menghentikan migrasi finansial jika menemukan data lama yang invalid atau
    duplikat; perbaiki data atau pulihkan backup terlebih dahulu. Migrasi tidak
@@ -105,6 +113,45 @@ skema ke database yang sudah berisi data.
 - Admin dapat meninjau aktivitas dan riwayat perubahan role di menu Aktivitas.
 - Login dibatasi setelah lima percobaan dalam 15 menit; sesi tidak aktif berakhir
   setelah 30 menit.
+- Portal keluarga menerima akun orang tua/wali dan siswa yang dibuat admin.
+  Akun wajib ditautkan manual ke siswa; satu akun wali dapat memiliki beberapa
+  siswa, sedangkan akun siswa hanya dapat melihat satu profil siswa. Portal
+  hanya menampilkan tagihan dan riwayat pembayaran, tidak menerima atau
+  mengonfirmasi pembayaran.
+- Password awal portal 12–72 karakter dan wajib diganti saat login pertama.
+  Admin dapat menonaktifkan akun, mengatur ulang password (yang mencabut sesi
+  aktif), dan mengelola tautan siswa. Berikan kredensial hanya setelah
+  memverifikasi penerima, melalui saluran privat.
+- Header keamanan dan cookie sesi produksi diaktifkan saat `APP_ENV=production`;
+  PHP tidak menampilkan error runtime ke pengunjung dan mengarahkannya ke log.
+  Apache memakai aturan `.htaccess` untuk mencegah akses web ke SQL, dokumentasi,
+  migrasi, dan tes. Nginx atau server lain harus menerapkan aturan deny yang
+  setara; jangan deploy folder `.git` atau backup database.
+
+## Persiapan produksi
+
+Sebelum membuka aplikasi ke internet:
+
+1. Buat akun MySQL khusus aplikasi dengan hak akses minimum pada database ini;
+   jangan gunakan `root`. Simpan kredensial pada environment server, bukan
+   source control atau file yang dapat diunduh.
+2. Buat backup dan uji pemulihan pada database terpisah. Jalankan migrasi dari
+   terminal server privat dengan environment produksi sudah diatur.
+3. Jika akun admin lama masih menyimpan password plaintext, sebelum memakai
+   versi ini jalankan `php database\hash_legacy_admin_passwords.php` satu kali
+   dari terminal privat. Skrip mengubah nilai yang belum berupa hash dalam
+   transaksi dan melaporkan jumlahnya; setelah itu login hanya menerima hash.
+4. Wajibkan HTTPS pada seluruh domain, batasi akses jaringan ke database,
+   lindungi direktori backup, dan siapkan backup terjadwal serta pemantauan.
+   Cookie produksi bertanda `Secure`; aplikasi tidak boleh digunakan melalui
+   HTTP publik.
+5. Siapkan kebijakan privasi dan prosedur pengelolaan akun wali/siswa sesuai
+   kebijakan sekolah. Kredensial portal dibuat dan diberikan manual oleh admin;
+   belum ada pendaftaran mandiri, OTP, pembayaran online, atau pengiriman pesan.
+
+Panduan ini adalah baseline konfigurasi aplikasi, bukan sertifikasi keamanan
+atau pengganti penyesuaian web server, firewall, backup, dan uji pemulihan pada
+hosting yang dipilih.
 
 ## Pemulihan password administrator
 

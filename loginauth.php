@@ -24,9 +24,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
             mysqli_stmt_execute($stmt);
             $admin = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
             $passwordHash = (string) ($admin['pass_admin'] ?? '');
-            $valid = $admin && (password_verify($pass, $passwordHash) || hash_equals($passwordHash, $pass));
+            $valid = $admin && password_verify($pass, $passwordHash);
 
             if ($valid) {
+                $_SESSION = [];
                 session_regenerate_id(true);
                 $_SESSION['admin'] = (int) $admin['id_admin'];
                 $_SESSION['nama_admin'] = $admin['nama_admin'];
@@ -34,12 +35,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
                 $_SESSION['last_activity'] = time();
                 clear_login_attempts($conn, $user);
 
-                if (password_get_info($passwordHash)['algo'] === null) {
-                    $hash = password_hash($pass, PASSWORD_DEFAULT);
-                    $update = mysqli_prepare($conn, 'UPDATE admin SET pass_admin = ? WHERE id_admin = ?');
-                    mysqli_stmt_bind_param($update, 'si', $hash, $_SESSION['admin']);
-                    mysqli_stmt_execute($update);
-                }
                 audit_event($conn, 'login_success', 'admin', (int) $admin['id_admin'], 'Administrator berhasil masuk.');
                 header('Location: index.php');
                 exit;
@@ -114,6 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
                 <button type="submit" name="login" class="btn btn-primary">Masuk ke dashboard <span aria-hidden="true">→</span></button>
             </form>
             <div class="login-security-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 19 6v5c0 5-3 8-7 10-4-2-7-5-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></svg><span>Akses terbatas untuk petugas sekolah. Jangan bagikan password Anda. Admin yang lupa password dapat meminta operator server menjalankan pemulihan lewat terminal.</span></div>
+            <p class="portal-login-link"><a href="portal_login.php">Orang tua/wali atau siswa? Masuk ke portal keluarga</a></p>
         </section>
     </div>
 </main>

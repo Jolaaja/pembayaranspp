@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['simpan']) || isset($
             $errorMessage = 'Lengkapi nama, username, dan password saat ini.';
         } elseif (!in_array($gender, ['male', 'female', 'unspecified'], true)) {
             $errorMessage = 'Pilih avatar gender yang valid.';
-        } elseif (!password_verify($currentPassword, (string) $admin['pass_admin']) && !hash_equals((string) $admin['pass_admin'], $currentPassword)) {
+        } elseif (!password_verify($currentPassword, (string) $admin['pass_admin'])) {
             $errorMessage = 'Password saat ini tidak sesuai.';
         } elseif ($newPassword !== '' && strlen($newPassword) < 10) {
             $errorMessage = 'Password baru minimal 10 karakter.';

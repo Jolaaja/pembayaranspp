@@ -5,6 +5,7 @@ if (PHP_SAPI !== 'cli') {
 }
 
 require_once __DIR__ . '/../app.php';
+require_once __DIR__ . '/../portal.php';
 include __DIR__ . '/../koneksi.php';
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 
@@ -74,6 +75,11 @@ expect_column_type($conn, 'siswa', 'guardian_name', 'varchar');
 expect_column_type($conn, 'siswa', 'guardian_phone', 'varchar');
 expect_column_type($conn, 'pembayaran_events', 'payment_method', 'enum');
 expect_column_type($conn, 'pembayaran_events', 'payment_reference', 'varchar');
+expect_column_type($conn, 'portal_accounts', 'username', 'varchar');
+expect_column_type($conn, 'portal_accounts', 'password_hash', 'varchar');
+expect_column_type($conn, 'portal_accounts', 'auth_version', 'int');
+expect_column_type($conn, 'portal_account_students', 'id_portal_account', 'bigint');
+expect_column_type($conn, 'portal_account_students', 'id_siswa', 'int');
 $schoolSettings = fetch_school_settings($conn);
 expect_true(trim($schoolSettings['school_name']) !== '', 'Pengaturan sekolah harus memiliki nama yang dapat digunakan.');
 
@@ -194,6 +200,41 @@ try {
         'ssiiisss',
         [$secondStudentNisn, 'Siswa Uji Kedua', $cohortId, $majorId, $classId, 'Data uji sementara', null, null]
     );
+    $secondStudentId = mysqli_insert_id($conn);
+    $portalPasswordHash = password_hash('Portal-Test-Password-2026!', PASSWORD_DEFAULT);
+    db_execute(
+        $conn,
+        "INSERT INTO portal_accounts (full_name, username, password_hash, account_type, created_by, must_change_password)
+         VALUES (?, ?, ?, 'guardian', ?, 0)",
+        'sssi',
+        ['Wali Portal Uji', 'portal-test-' . bin2hex(random_bytes(5)), $portalPasswordHash, $adminId]
+    );
+    $firstPortalAccountId = (int) mysqli_insert_id($conn);
+    db_execute(
+        $conn,
+        "INSERT INTO portal_accounts (full_name, username, password_hash, account_type, created_by, must_change_password)
+         VALUES (?, ?, ?, 'guardian', ?, 0)",
+        'sssi',
+        ['Wali Portal Kedua', 'portal-test-' . bin2hex(random_bytes(5)), $portalPasswordHash, $adminId]
+    );
+    $secondPortalAccountId = (int) mysqli_insert_id($conn);
+    db_execute(
+        $conn,
+        'INSERT INTO portal_account_students (id_portal_account, id_siswa, linked_by) VALUES (?, ?, ?)',
+        'iii',
+        [$firstPortalAccountId, $studentId, $adminId]
+    );
+    db_execute(
+        $conn,
+        'INSERT INTO portal_account_students (id_portal_account, id_siswa, linked_by) VALUES (?, ?, ?)',
+        'iii',
+        [$secondPortalAccountId, $secondStudentId, $adminId]
+    );
+    $firstPortalStudents = portal_fetch_students($conn, $firstPortalAccountId);
+    expect_true(
+        count($firstPortalStudents) === 1 && (int) $firstPortalStudents[0]['id_siswa'] === $studentId,
+        'Akun portal hanya boleh menampilkan siswa yang ditautkan secara eksplisit.'
+    );
     $paymentNameMatches = search_payment_students($conn, 'Siswa Uji');
     expect_true(count($paymentNameMatches) === 2, 'Pencarian pembayaran harus menemukan nama siswa yang cocok.');
     $paymentNisnMatches = search_payment_students($conn, $nisn);
@@ -219,6 +260,36 @@ try {
     $dueDate = date('Y-m-d', strtotime('-1 day'));
     db_execute($conn, 'INSERT INTO pembayaran (id_siswa, jatuhtempo, bulan, jumlah) VALUES (?, ?, ?, ?)', 'isss', [$studentId, $dueDate, 'Januari 2026', '98765.43']);
     $paymentId = mysqli_insert_id($conn);
+    db_execute($conn, 'INSERT INTO pembayaran (id_siswa, jatuhtempo, bulan, jumlah) VALUES (?, ?, ?, ?)', 'isss', [$secondStudentId, $dueDate, 'Januari 2026', '12345.00']);
+    $secondStudentPaymentId = mysqli_insert_id($conn);
+    $firstPortalPayments = portal_fetch_student_payments($conn, $firstPortalAccountId, $studentId);
+    $unauthorizedPortalPayments = portal_fetch_student_payments($conn, $firstPortalAccountId, $secondStudentId);
+    expect_true(
+        count($firstPortalPayments) === 1
+            && (int) $firstPortalPayments[0]['idspp'] === $paymentId
+            && $unauthorizedPortalPayments === [],
+        'Akun portal tidak boleh membaca jadwal siswa yang tidak ditautkan, meskipun ID siswa diketahui.'
+    );
+    $secondPortalPayments = portal_fetch_student_payments($conn, $secondPortalAccountId, $secondStudentId);
+    expect_true(
+        count($secondPortalPayments) === 1
+            && (int) $secondPortalPayments[0]['idspp'] === $secondStudentPaymentId,
+        'Akun portal tertaut harus dapat membaca jadwal milik siswanya.'
+    );
+    $_SESSION['portal_account_id'] = $firstPortalAccountId;
+    $_SESSION['portal_auth_version'] = 1;
+    $_SESSION['portal_last_activity'] = time();
+    $_SERVER['PHP_SELF'] = 'portal_dashboard.php';
+    ob_start();
+    include __DIR__ . '/../portal_dashboard.php';
+    $portalDashboardHtml = ob_get_clean();
+    expect_true(
+        strpos($portalDashboardHtml, 'Tagihan &amp; riwayat pembayaran') !== false
+            && strpos($portalDashboardHtml, 'Siswa Uji') !== false
+            && strpos($portalDashboardHtml, 'Siswa Uji Kedua') === false,
+        'Dashboard portal harus merender data siswa tertaut tanpa menampilkan siswa lain.'
+    );
+    unset($_SESSION['portal_account_id'], $_SESSION['portal_auth_version'], $_SESSION['portal_last_activity']);
     $overdueReminders = fetch_payment_reminders($conn, 'overdue', $nisn, 7, 1);
     expect_true(
         $overdueReminders['total'] === 1
@@ -326,6 +397,11 @@ try {
         [$paymentId]
     );
     expect_true((int) mysqli_fetch_assoc(mysqli_stmt_get_result($archivedOverdue))['total'] === 0, 'Siswa yang diarsipkan tidak boleh masuk daftar tunggakan aktif.');
+    expect_true(
+        portal_fetch_students($conn, $firstPortalAccountId) === []
+            && portal_fetch_student_payments($conn, $firstPortalAccountId, $studentId) === [],
+        'Akun portal tidak boleh melihat jadwal siswa setelah siswa diarsipkan.'
+    );
     expect_true(search_payment_students($conn, $nisn) === [], 'Pencarian pembayaran tidak boleh menampilkan siswa yang diarsipkan.');
 
     mysqli_rollback($conn);

@@ -550,3 +550,95 @@ label { margin-bottom: 7px; color: #536462; font-size: 11px; font-weight: 700; }
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }
+
+.portal-auth-page { min-height: 100vh; display: grid; place-items: center; padding: 28px 16px; background: radial-gradient(circle at 8% 12%, rgba(201,226,210,.62), transparent 34%), linear-gradient(140deg,#edf4ef,#f7f8f5 55%,#e6efeb); color: var(--ink); }
+.portal-auth-card { width: min(100%,520px); padding: clamp(24px,5vw,46px); border: 1px solid rgba(255,255,255,.9); border-radius: 24px; background: rgba(255,255,255,.94); box-shadow: 0 24px 70px rgba(27,61,53,.13); }
+.portal-school-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; color: var(--ink); text-decoration: none; }
+.portal-school-brand img { width: 48px; height: 48px; flex: 0 0 48px; object-fit: contain; border-radius: 14px; }
+.portal-school-brand span { display: grid; gap: 3px; min-width: 0; }
+.portal-school-brand strong { overflow: hidden; font-size: 15px; text-overflow: ellipsis; white-space: nowrap; }
+.portal-school-brand small { color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .12em; }
+.portal-auth-card > .eyebrow { color: #527a66; }
+.portal-auth-card h1 { margin: 10px 0 12px; color: #173c34; font-size: clamp(26px,5vw,34px); font-weight: 800; letter-spacing: -.04em; line-height: 1.18; }
+.portal-auth-description,.portal-account-help { color: #64736d; font-size: 13px; line-height: 1.7; }
+.portal-login-form { display: grid; gap: 11px; margin-top: 24px; }
+.portal-login-form label { margin: 3px 0 0; color: #293d36; font-size: 12px; font-weight: 700; }
+.portal-login-form .form-control { min-height: 46px; border-color: #dce6df; border-radius: 11px; }
+.portal-login-form .btn { min-height: 46px; margin-top: 8px; border-radius: 11px; font-weight: 700; }
+.portal-account-help { margin: 20px 0 0; padding: 13px 15px; border-radius: 12px; background: #f0f5f1; }
+.portal-staff-link { display: inline-block; margin-top: 18px; color: #376d57; font-size: 12px; font-weight: 700; text-decoration: none; }
+.portal-staff-link:hover { color: #214d3a; text-decoration: underline; }
+.portal-login-link { margin: 16px 0 0; text-align: center; }
+.portal-login-link a { color: #47735c; font-size: 12px; font-weight: 700; }
+.portal-page { min-height: 100vh; background: #f3f6f3; color: var(--ink); }
+.portal-layout { min-height: 100vh; }
+.portal-topbar { display: flex; min-height: 76px; align-items: center; justify-content: space-between; gap: 20px; padding: 12px clamp(18px,5vw,72px); border-bottom: 1px solid #e1e9e3; background: #fff; }
+.portal-topbar .portal-school-brand { margin: 0; }
+.portal-account-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; color: #54645d; font-size: 12px; }
+.portal-account-actions form { margin: 0; }
+.portal-content { width: min(100% - 32px,1120px); margin: 0 auto; padding: 38px 0 60px; }
+.portal-heading { margin: 4px 0 24px; }
+.portal-heading .eyebrow { color: #64836e; }
+.portal-heading h1 { margin: 7px 0 5px; color: #173c34; font-size: clamp(24px,4vw,32px); font-weight: 800; letter-spacing: -.035em; }
+.portal-heading p,.portal-card-heading p { margin: 0; color: #718078; font-size: 13px; }
+.portal-student-switcher { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; }
+.portal-student-switcher a { display: grid; gap: 3px; padding: 11px 15px; border: 1px solid #dfe8e1; border-radius: 12px; background: #fff; color: #334a3e; font-size: 12px; font-weight: 700; text-decoration: none; }
+.portal-student-switcher a small { color: #718078; font-size: 10px; font-weight: 500; }
+.portal-student-switcher a.is-selected { border-color: #71977c; background: #edf5ee; color: #1d5639; }
+.portal-student-card,.portal-data-card,.portal-empty-state { margin: 0 0 18px; padding: 22px 24px; border: 1px solid #e4ebe5; border-radius: 16px; background: #fff; box-shadow: 0 6px 22px rgba(29,60,45,.035); }
+.portal-student-card { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.portal-student-card h2,.portal-data-card h2,.portal-empty-state h2 { margin: 5px 0 0; color: #1d3e31; font-size: 18px; font-weight: 800; }
+.portal-student-card dl { display: flex; gap: 30px; margin: 0; }
+.portal-student-card dl div { display: grid; gap: 3px; }
+.portal-student-card dt { color: #78867e; font-size: 9px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.portal-student-card dd { margin: 0; color: #33483c; font-size: 12px; font-weight: 700; }
+.portal-summary-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; margin-bottom: 18px; }
+.portal-summary-grid article { display: grid; gap: 8px; padding: 18px 20px; border: 1px solid #e4ebe5; border-radius: 14px; background: #fff; }
+.portal-summary-grid span { color: #758179; font-size: 11px; font-weight: 600; }
+.portal-summary-grid strong { color: #1d5238; font-size: clamp(17px,3vw,23px); font-weight: 800; }
+.portal-card-heading { margin-bottom: 14px; }
+.portal-data-card h2 { margin-top: 0; }
+.portal-data-card .table { margin: 0; }
+.portal-data-card .table th { color: #758179; font-size: 10px; text-transform: uppercase; }
+.portal-data-card .table td { color: #354a3e; font-size: 12px; vertical-align: middle; }
+.portal-status { display: inline-block; padding: 5px 9px; border-radius: 20px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+.portal-status.is-unpaid { background: #fff2df; color: #8a5a17; }
+.portal-status.is-active { background: #e7f4e9; color: #287044; }
+.portal-status.is-disabled { background: #fcebea; color: #973f3a; }
+.portal-no-data { padding: 22px !important; color: #748078 !important; text-align: center; }
+.portal-empty-state { padding: 36px 24px; text-align: center; }
+.portal-empty-state p { margin: 8px 0 0; color: #718078; font-size: 13px; }
+.portal-readonly-note { margin: 20px 0 0; color: #748078; font-size: 11px; text-align: center; }
+.portal-admin-intro .card-body { padding: 20px 22px; }
+.portal-admin-intro h2 { margin: 0 0 8px; color: #204535; font-size: 17px; font-weight: 800; }
+.portal-admin-intro h2 small { color: #718078; font-size: 12px; font-weight: 500; }
+.portal-admin-intro p { margin: 0 0 8px; color: #65756c; font-size: 12px; line-height: 1.65; }
+.portal-student-search { display: flex; align-items: flex-end; gap: 10px; margin-bottom: 18px; }
+.portal-student-search .form-group { flex: 1; margin: 0; }
+.portal-account-create { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px 16px; }
+.portal-account-create .form-group { margin: 0; }
+.portal-account-create .portal-student-option { grid-column: 1 / -1; }
+.portal-account-create .form-group small { display: block; margin-top: 5px; color: #718078; font-size: 10px; }
+.portal-account-create > .btn { justify-self: start; }
+.portal-admin-actions { min-width: 150px; }
+.portal-admin-actions form { margin-top: 6px; }
+.portal-link-results { display: grid; gap: 7px; }
+.portal-link-results form { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 11px; border: 1px solid #e7ede8; border-radius: 9px; font-size: 12px; }
+.portal-reset-form { display: flex; align-items: flex-end; gap: 12px; }
+.portal-reset-form .form-group { flex: 1; margin: 0; }
+@media (max-width: 700px) {
+    .portal-topbar { align-items: flex-start; flex-direction: column; padding: 14px 16px; }
+    .portal-account-actions { width: 100%; justify-content: space-between; flex-wrap: wrap; }
+    .portal-content { width: min(100% - 24px,1120px); padding-top: 26px; }
+    .portal-student-card { align-items: flex-start; flex-direction: column; padding: 18px; }
+    .portal-student-card dl { width: 100%; justify-content: space-between; gap: 12px; }
+    .portal-summary-grid { grid-template-columns: 1fr; gap: 9px; }
+    .portal-summary-grid article { gap: 4px; padding: 13px 15px; }
+    .portal-data-card { padding: 16px 13px; }
+    .portal-data-card .table { min-width: 580px; }
+    .portal-account-create { grid-template-columns: 1fr; }
+    .portal-account-create .portal-student-option { grid-column: auto; }
+    .portal-account-create > .btn { width: 100%; }
+    .portal-reset-form,.portal-student-search { align-items: stretch; flex-direction: column; }
+    .portal-reset-form .btn,.portal-student-search .btn { width: 100%; }
+}

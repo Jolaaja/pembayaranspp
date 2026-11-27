@@ -1,0 +1,11 @@
+Options -Indexes
+
+<FilesMatch "(?i)\.(sql|md|env|log|bak)$">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule (^|/)\. - [F,L]
+    RewriteRule ^(database|tests|scss)/ - [F,L,NC]
+</IfModule>

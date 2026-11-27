@@ -1,10 +1,29 @@
 <?php
 
 if (session_status() === PHP_SESSION_NONE) {
+    $isProduction = strtolower((string) (getenv('APP_ENV') ?: 'development')) === 'production';
+    if ($isProduction) {
+        ini_set('display_errors', '0');
+        ini_set('display_startup_errors', '0');
+        ini_set('log_errors', '1');
+    }
     ini_set('session.cookie_httponly', '1');
     ini_set('session.cookie_samesite', 'Lax');
-    ini_set('session.cookie_secure', (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? '1' : '0');
+    ini_set('session.cookie_secure', ($isProduction || (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')) ? '1' : '0');
+    ini_set('session.use_strict_mode', '1');
+    ini_set('session.use_only_cookies', '1');
     session_start();
+}
+
+if (!headers_sent()) {
+    header('X-Content-Type-Options: nosniff');
+    header('X-Frame-Options: DENY');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
+    if (strtolower((string) (getenv('APP_ENV') ?: 'development')) === 'production'
+        && !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+        header('Strict-Transport-Security: max-age=31536000');
+    }
 }
 
 function e($value): string
