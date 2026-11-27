@@ -61,7 +61,8 @@ skema ke database yang sudah berisi data.
 - Admin dapat mengelola data sekolah, pengguna, role, dan profil. Kasir dapat
   memproses pembayaran serta membuka laporan.
 - Pembayaran diproses dengan transaksi database dan penguncian baris. Pembatalan
-  menyimpan peristiwa reversal, bukan menghapus riwayat.
+  menyimpan peristiwa reversal, bukan menghapus riwayat. Riwayat ditampilkan
+  sebagai linimasa dengan status terkini dan tautan ke slip pembayaran.
 - Setiap siswa baru mendapat 36 jadwal SPP dengan jatuh tempo tanggal 10 mulai
   bulan berjalan. Penghapusan siswa mengarsipkannya agar histori tetap tersedia.
 - Akun dapat memilih avatar default netral, perempuan, atau laki-laki, serta
